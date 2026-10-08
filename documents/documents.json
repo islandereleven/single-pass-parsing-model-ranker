@@ -1,0 +1,16 @@
+{
+  "schema_version": "single-pass-documents/v1",
+  "document_root": ".",
+  "documents": [
+    {
+      "document_id": "acme-invoice-0001",
+      "path": "acme_invoice.txt",
+      "source_format": "text/plain",
+      "document_family": "invoice",
+      "sha256": "953565bb29359f6587de74dadaa3b1ff32cd35b6f2b4d979dcbfe052da9a6eec",
+      "metadata": {
+        "source": "hand-authored"
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 NASA-inspired evaluation infrastructure for ranking how well LLMs parse documents into structured data in a single call.
 
-This package is being built for experiments, ranking tables, and technical content on [islandereleven.com](https://islandereleven.com). The first mission is deliberately narrow: feed each model a text representation of a document plus a Pydantic schema, collect one JSON response, and compare that response against a known-good reference JSON.
+This package is being built for experiments, ranking tables, and technical content on [islandereleven.com](https://islandereleven.com). The first mission is deliberately narrow: feed each model a text representation of a fixed document plus a row-level data model, collect one JSON response, and compare that response against the row's ground truth.
 
 ## Mission
 
@@ -12,20 +12,24 @@ The system should answer:
 
 - Which models produce the most accurate structured output from document text?
 - How much latency and cost does each model trade for that accuracy?
-- Which schemas, document types, and extraction tasks expose model weaknesses?
+- Which data models, document types, and extraction tasks expose model weaknesses?
 - Which results are interesting enough to publish as rankings, writeups, and experiments on islandereleven.com?
 
 ## Mission Constraints
 
 - **Single pass first:** one LLM call per document-case/model pair.
 - **Text input first:** PDFs, HTML, DOCX, OCR text, and other sources are converted into a canonical text format before evaluation.
-- **Schema-driven output:** each task provides a Pydantic model or compatible schema that defines the expected JSON shape.
-- **Reference comparison:** model output is scored against a ground-truth JSON fixture.
+- **Data-model-driven output:** each test case provides a JSON-compatible data model that defines the expected output shape.
+- **Ground-truth comparison:** model output is scored against the test case's expected JSON object.
 - **Accuracy primary:** parsing accuracy is the mission-critical metric.
 - **Latency and price secondary:** speed and cost are tracked, reported, and used as tie-breakers.
 - **Multimodal later:** direct PDF/image or agentic parsing can be added after the text-only baseline is trustworthy.
 
 ## NASA-Inspired Lifecycle
+
+Current phase: **Phase A exit / Phase B entry**.
+
+The mission concept is set, and the first evaluation data contract now exists in code and fixtures. The current work is to stabilize that contract, then move into the architecture for model execution, scoring, result storage, and website publishing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -46,7 +50,7 @@ Exit criteria:
 
 - Document case format exists.
 - Expected JSON fixture format exists.
-- Pydantic schema handoff is defined.
+- Data model handoff is defined.
 - Metrics are specified for accuracy, latency, and price.
 - Failure modes are classified.
 
@@ -58,7 +62,7 @@ Exit criteria:
 
 - Converters produce canonical document text.
 - Model adapters expose a common parse interface.
-- Scorers compare model JSON to reference JSON.
+- Scorers compare model JSON to ground truth.
 - Ranking output is serializable for the website.
 - Experiment runs are reproducible.
 
@@ -113,38 +117,77 @@ Candidate upgrades:
 single-pass-parsing-model-ranker/
 ├── README.md
 ├── pyproject.toml
+├── docs/
+│   └── phase-status.md
+├── documents/
+│   ├── acme_invoice.txt
+│   └── documents.json
+├── corpora/
+│   └── 0.1.0.json
 ├── src/
 │   └── single_pass_parsing_ranker/
 │       ├── __init__.py
-│       ├── metrics.py
-│       ├── models.py
-│       └── ranking.py
+│       └── data.py
 └── tests/
-    └── test_metrics.py
+    ├── .gitkeep
+    └── test_corpus.py
 ```
 
 ## Core Concepts
 
-- **DocumentCase:** one document-text input, one schema name, and one reference JSON object.
+- **Document registry:** the fixed set of source documents, addressed by stable document IDs and protected by document checksums.
+- **Corpus table:** one versioned table of test cases over the fixed document registry.
+- **TestCase:** one corpus table row with `test_case_id`, `document_id`, `data_model`, and `ground_truth`.
 - **ModelCandidate:** one LLM configuration being evaluated.
 - **ParseAttempt:** one model's single-pass output for one document case.
 - **AccuracyScore:** field-level comparison between expected JSON and model JSON.
 - **RankedResult:** scored output ready for leaderboard rendering.
 
+## Data Contract
+
+Raw documents live in a fixed document registry outside the versioned corpus table. A corpus version is the whole table: if a row is added, removed, or corrected, or if any row's `data_model` or `ground_truth` changes, that creates a new corpus version.
+
+Each corpus row has this shape:
+
+- `test_case_id`: stable ID for this evaluation row.
+- `document_id`: fixed source document to parse.
+- `data_model`: JSON Schema-style object defining the expected output shape.
+- `ground_truth`: expected JSON object for that document and data model.
+
+The fixed document registry is checksum-protected so source document drift is caught before evaluation. The corpus table itself is versioned as a whole, so row-level changes do not silently rewrite history.
+
+Implemented contract pieces:
+
+- `documents/documents.json` declares fixed source documents, paths, and checksums.
+- `corpora/0.1.0.json` declares a versioned corpus table over that document registry.
+- `src/single_pass_parsing_ranker/data.py` loads the corpus, validates registry links, and checks document SHA-256 drift.
+- `tests/test_corpus.py` covers the example corpus, document reading, checksum drift, and unknown document references.
+
+Not implemented yet:
+
+- Model candidate registry.
+- LiteLLM execution wrapper.
+- Prompt assembly.
+- Response JSON parsing and schema validation.
+- Accuracy scoring.
+- Result persistence and leaderboard export.
+
 ## Development
 
-Install the package in editable mode:
+Install dependencies:
 
 ```bash
-python -m pip install -e ".[dev]"
+poetry install
 ```
 
 Run tests:
 
 ```bash
-pytest
+PYTHONPATH=src python -m unittest discover -s tests
 ```
 
 ## Current Status
 
-Pre-Phase A is underway. The first implementation focuses on the evaluator core, not provider integrations. Model adapters, document converters, cloud storage, and website publishing will come after the scoring contract is stable.
+Pre-Phase A is complete. Phase A is at its exit gate: the corpus/document contract has a working implementation and tests, but the project still needs a short requirements pass over scoring and failure modes before the gate is fully closed.
+
+Phase B is starting around the evaluator architecture: LiteLLM model calls, prompt construction, output validation, scoring, ranking, result storage, and export formats for islandereleven.com.

@@ -1,0 +1,128 @@
+{
+  "schema_version": "single-pass-corpus/v1",
+  "corpus_id": "example-invoices",
+  "version": "0.1.0",
+  "name": "Example Invoices",
+  "description": "A tiny synthetic invoice corpus table over fixed source documents.",
+  "created_at": "2026-10-08",
+  "document_registry": "../documents/documents.json",
+  "rows": [
+    {
+      "test_case_id": "acme-invoice-0001.invoice-v1",
+      "document_id": "acme-invoice-0001",
+      "data_model": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Invoice",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "supplier_name",
+          "invoice_number",
+          "invoice_date",
+          "due_date",
+          "bill_to",
+          "currency",
+          "subtotal",
+          "tax",
+          "total",
+          "payment_terms",
+          "line_items"
+        ],
+        "properties": {
+          "supplier_name": {
+            "type": "string"
+          },
+          "invoice_number": {
+            "type": "string"
+          },
+          "invoice_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "bill_to": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "tax": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "payment_terms": {
+            "type": "string"
+          },
+          "line_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "quantity",
+                "unit_price",
+                "total"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "unit_price": {
+                  "type": "number"
+                },
+                "total": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ground_truth": {
+        "supplier_name": "ACME Widgets",
+        "invoice_number": "INV-0001",
+        "invoice_date": "2026-10-01",
+        "due_date": "2026-10-31",
+        "bill_to": "Islander Eleven LLC",
+        "currency": "USD",
+        "subtotal": 162.5,
+        "tax": 13.0,
+        "total": 175.5,
+        "payment_terms": "Net 30",
+        "line_items": [
+          {
+            "description": "Stainless bolt kit",
+            "quantity": 3,
+            "unit_price": 12.5,
+            "total": 37.5
+          },
+          {
+            "description": "Calibration service",
+            "quantity": 1,
+            "unit_price": 125.0,
+            "total": 125.0
+          }
+        ]
+      },
+      "tags": [
+        "synthetic",
+        "happy-path"
+      ],
+      "metadata": {
+        "notes": "Initial row used to validate the corpus table contract."
+      }
+    }
+  ]
+}

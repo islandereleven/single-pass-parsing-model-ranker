@@ -1,0 +1,16 @@
+ACME Widgets
+Invoice INV-0001
+Date: 2026-10-01
+Due: 2026-10-31
+Bill To: Islander Eleven LLC
+
+Line Items:
+- Stainless bolt kit | Quantity: 3 | Unit price: 12.50 | Total: 37.50
+- Calibration service | Quantity: 1 | Unit price: 125.00 | Total: 125.00
+
+Subtotal: 162.50
+Tax: 13.00
+Total: 175.50
+Currency: USD
+Payment terms: Net 30
+
