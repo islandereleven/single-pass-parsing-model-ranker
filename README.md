@@ -1,6 +1,8 @@
 # Single-Pass Parsing Model Ranker
 
-NASA-inspired evaluation infrastructure for ranking how well LLMs parse documents into structured data in a single call.
+Evaluation infrastructure for ranking how well LLMs parse documents into structured data in a single call.
+
+This project is managed using a NASA systems-design perspective: clear mission definition, phased requirements, architecture gates, verification, and operational readiness. It is not a NASA project.
 
 This package is being built for experiments, ranking tables, and technical content on [islandereleven.com](https://islandereleven.com). The first mission is deliberately narrow: feed each model a text representation of a fixed document plus a row-level data model, collect one JSON response, and compare that response against the row's ground truth.
 
@@ -25,7 +27,7 @@ The system should answer:
 - **Latency and price secondary:** speed and cost are tracked, reported, and used as tie-breakers.
 - **Multimodal later:** direct PDF/image or agentic parsing can be added after the text-only baseline is trustworthy.
 
-## NASA-Inspired Lifecycle
+## Systems Design Lifecycle
 
 Current phase: **Phase B entry**.
 
