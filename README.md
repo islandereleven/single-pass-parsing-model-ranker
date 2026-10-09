@@ -140,7 +140,7 @@ single-pass-parsing-model-ranker/
 
 - **Document registry:** the fixed set of source documents, addressed by stable document IDs and protected by document checksums.
 - **Corpus table:** one versioned table of test cases over the fixed document registry.
-- **TestCase:** one corpus table row with `test_case_id`, `document_id`, `data_model`, and `ground_truth`.
+- **TestCase:** one corpus table row with `test_case_id`, `document_id`, `prompt`, `data_model`, and `ground_truth`.
 - **ModelCandidate:** one LLM configuration being evaluated.
 - **ParseAttempt:** one model's single-pass output for one document case.
 - **AccuracyScore:** field-level comparison between expected JSON and model JSON.
@@ -148,12 +148,13 @@ single-pass-parsing-model-ranker/
 
 ## Data Contract
 
-Raw documents live in a fixed document registry outside the versioned corpus table. A corpus version is the whole table: if a row is added, removed, or corrected, or if any row's `data_model` or `ground_truth` changes, that creates a new corpus version.
+Raw documents live in a fixed document registry outside the versioned corpus table. A corpus version is the whole table: if a row is added, removed, or corrected, or if any row's `prompt`, `data_model`, or `ground_truth` changes, that creates a new corpus version.
 
 Each corpus row has this shape:
 
 - `test_case_id`: stable ID for this evaluation row.
 - `document_id`: fixed source document to parse.
+- `prompt`: reusable extraction instruction for the model attempt.
 - `data_model`: JSON Schema-style object defining the expected output shape.
 - `ground_truth`: expected JSON object for that document and data model.
 

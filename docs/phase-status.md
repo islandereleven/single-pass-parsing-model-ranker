@@ -27,7 +27,7 @@ Completed evidence:
 
 - `documents/documents.json` defines the fixed source document registry.
 - `corpora/0.1.0.json` defines the first versioned corpus table.
-- Corpus rows include `test_case_id`, `document_id`, `data_model`, and `ground_truth`.
+- Corpus rows include `test_case_id`, `document_id`, `prompt`, `data_model`, and `ground_truth`.
 - Document files are protected by SHA-256 checksums.
 - `load_corpus` loads corpus rows, checks registry links, confirms document existence, and detects checksum drift.
 - Tests cover loading, document reading, checksum drift, and unknown document references.
@@ -49,7 +49,7 @@ Phase B should design the evaluator pipeline around the existing corpus contract
 
 1. Load corpus version.
 2. Load fixed document text by `test_case_id`.
-3. Build prompt from document text and row-level `data_model`.
+3. Build the model call from the row-level `prompt`, document text, and row-level `data_model`.
 4. Run one model call through LiteLLM.
 5. Parse model output as JSON.
 6. Normalize model output and ground truth through the row data model.

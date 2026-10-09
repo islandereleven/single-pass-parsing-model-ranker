@@ -10,10 +10,11 @@ Each attempt is tied to one corpus row:
 
 - `test_case_id`
 - `document_id`
+- `prompt`
 - `data_model`
 - `ground_truth`
 
-The evaluator sends the fixed document text and row-level data model to one model candidate through LiteLLM. The data model may be represented as JSON Schema in the corpus and normalized through a Pydantic-compatible model in the evaluator.
+The evaluator sends the row-level prompt, fixed document text, and row-level data model to one model candidate through LiteLLM. The data model may be represented as JSON Schema in the corpus and normalized through a Pydantic-compatible model in the evaluator.
 
 ## Normalization Policy
 

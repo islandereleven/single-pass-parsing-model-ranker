@@ -30,6 +30,7 @@ class Document:
 class TestCase:
     test_case_id: str
     document_id: str
+    prompt: str
     data_model: JsonObject
     ground_truth: JsonObject
 
@@ -98,6 +99,7 @@ def _load_rows(raw_rows: list[JsonObject], documents: dict[str, Document]) -> tu
         row = TestCase(
             test_case_id=item["test_case_id"],
             document_id=item["document_id"],
+            prompt=item["prompt"],
             data_model=item["data_model"],
             ground_truth=item["ground_truth"],
         )
@@ -105,6 +107,8 @@ def _load_rows(raw_rows: list[JsonObject], documents: dict[str, Document]) -> tu
             raise CorpusLoadError(f"Duplicate test_case_id: {row.test_case_id}")
         if row.document_id not in documents:
             raise CorpusLoadError(f"Unknown document_id: {row.document_id}")
+        if not isinstance(row.prompt, str) or not row.prompt.strip():
+            raise CorpusLoadError(f"Invalid row prompt: {row.test_case_id}")
         if not isinstance(row.data_model, dict) or not isinstance(row.ground_truth, dict):
             raise CorpusLoadError(f"Invalid row payload: {row.test_case_id}")
         seen.add(row.test_case_id)
@@ -130,4 +134,3 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-

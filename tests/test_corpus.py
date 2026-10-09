@@ -23,6 +23,7 @@ class CorpusTests(unittest.TestCase):
 
         row = corpus.require_test_case("acme-invoice-0001.invoice-v1")
         self.assertEqual(row.document_id, "acme-invoice-0001")
+        self.assertIn("Return exactly one JSON object", row.prompt)
 
     def test_reads_document_and_inline_row_payloads(self) -> None:
         corpus = load_corpus(EXAMPLE_CORPUS)
@@ -32,6 +33,7 @@ class CorpusTests(unittest.TestCase):
         self.assertIn("Invoice INV-0001", document)
         self.assertEqual(row.data_model["title"], "Invoice")
         self.assertEqual(row.data_model["type"], "object")
+        self.assertIn("provided data model", row.prompt)
         self.assertEqual(row.ground_truth["invoice_number"], "INV-0001")
         self.assertEqual(row.ground_truth["total"], 175.5)
 

@@ -10,6 +10,7 @@
     {
       "test_case_id": "acme-invoice-0001.invoice-v1",
       "document_id": "acme-invoice-0001",
+      "prompt": "Extract the requested structured data from the document text. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Do not include explanations, markdown, comments, or extra keys. If a value is not present in the document, use null only when the data model allows null; otherwise leave the field in the best valid form supported by the document and data model.",
       "data_model": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Invoice",
