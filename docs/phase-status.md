@@ -2,7 +2,7 @@
 
 Current phase: **Phase B entry**.
 
-The project has moved beyond mission concept and requirements capture. The document/corpus contract exists as files, code, and tests, and the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md). The next step is to design the model-running and ranking pipeline around that contract.
+The project has moved beyond mission concept and requirements capture. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), and the evaluator architecture is being defined in [evaluator-architecture.md](evaluator-architecture.md).
 
 ## Completed Gates
 
@@ -47,24 +47,25 @@ Status: **starting**.
 
 Phase B should design the evaluator pipeline around the existing corpus contract:
 
-1. Load corpus version.
-2. Load fixed document text by `test_case_id`.
-3. Build the model call from the row-level `prompt`, document text, and row-level `data_model`.
-4. Run one model call through LiteLLM.
-5. Parse model output as JSON.
-6. Normalize model output and ground truth through the row data model.
-7. Score normalized output against normalized ground truth.
-8. Record latency, token usage, estimated cost, raw response metadata, run status, and failure reason.
-9. Export rankings for website display.
+1. Load evaluator config.
+2. Resolve one provider/model/settings config for the run.
+3. Resolve corpus version, defaulting to latest when omitted.
+4. Create one `runs` row.
+5. Execute or schedule one `run_test_cases` row per corpus test case.
+6. Treat returned but malformed output as `zero_score`, not run failure.
+7. Mark the run failed if any provider/infrastructure failure occurs.
+8. Let reporting aggregate and compare `run_test_cases` outside the core evaluator. Multiple models are just multiple independent runs.
 
 Phase B exit criteria:
 
-- Model candidate representation is defined.
+- Model/provider settings are defined.
+- Evaluator config representation is defined.
 - Prompt contract is defined.
 - LiteLLM call boundary is defined.
 - Attempt/result schema is defined.
-- Scoring interface is defined.
-- Ranking output format is defined.
+- `runs` storage format is defined.
+- `run_test_cases` storage format is defined.
+- Reporting handoff fields are defined.
 - Reproducibility metadata is defined.
 
 ## Later Phases

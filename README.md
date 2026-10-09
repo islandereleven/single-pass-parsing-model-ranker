@@ -41,7 +41,7 @@ Exit criteria:
 
 - Mission objective is written down.
 - Single-pass constraint is explicit.
-- Initial document families and model candidates are named.
+- Initial document families and model/provider settings are named.
 - Website-facing ranking output is sketched.
 
 ### Phase A: Requirements
@@ -74,7 +74,7 @@ Implement the first working evaluator.
 
 Exit criteria:
 
-- Package can load cases, run candidates, score outputs, and produce rankings.
+- Package can load cases, run configured models, score outputs, and persist results.
 - Local tests cover scoring and ranking behavior.
 - Example cases demonstrate the workflow.
 - Results can be exported as JSON or Markdown.
@@ -120,6 +120,7 @@ single-pass-parsing-model-ranker/
 ├── README.md
 ├── pyproject.toml
 ├── docs/
+│   ├── evaluator-architecture.md
 │   ├── evaluation-contract.md
 │   └── phase-status.md
 ├── documents/
@@ -141,10 +142,11 @@ single-pass-parsing-model-ranker/
 - **Document registry:** the fixed set of source documents, addressed by stable document IDs and protected by document checksums.
 - **Corpus table:** one versioned table of test cases over the fixed document registry.
 - **TestCase:** one corpus table row with `test_case_id`, `document_id`, `prompt`, `data_model`, and `ground_truth`.
-- **ModelCandidate:** one LLM configuration being evaluated.
+- **Model config:** provider, model, and runtime settings being evaluated.
 - **ParseAttempt:** one model's single-pass output for one document case.
 - **AccuracyScore:** field-level comparison between expected JSON and model JSON.
-- **RankedResult:** scored output ready for leaderboard rendering.
+- **Run:** one model evaluated against one corpus version.
+- **RunTestCase:** one model call and result for one corpus test case inside a run.
 
 ## Data Contract
 
@@ -171,12 +173,12 @@ Implemented contract pieces:
 
 Not implemented yet:
 
-- Model candidate registry.
+- Model/provider settings.
 - LiteLLM execution wrapper.
 - Prompt assembly.
 - Response JSON parsing and data-model normalization.
 - Accuracy scoring implementation.
-- Result persistence and leaderboard export.
+- `runs` and `run_test_cases` persistence.
 
 ## Development
 
@@ -196,4 +198,4 @@ PYTHONPATH=src python -m unittest discover -s tests
 
 Pre-Phase A is complete. Phase A is closed for the current scope: the corpus/document contract and evaluation semantics are documented, and the corpus loader has tests.
 
-Phase B is starting around the evaluator architecture: LiteLLM model calls, prompt construction, output normalization, scoring, ranking, result storage, and export formats for islandereleven.com.
+Phase B is defining the evaluator architecture: one config creates one run for one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons are reporting concerns outside the core evaluator.

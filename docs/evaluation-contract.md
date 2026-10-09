@@ -14,7 +14,7 @@ Each attempt is tied to one corpus row:
 - `data_model`
 - `ground_truth`
 
-The evaluator sends the row-level prompt, fixed document text, and row-level data model to one model candidate through LiteLLM. The data model may be represented as JSON Schema in the corpus and normalized through a Pydantic-compatible model in the evaluator.
+The evaluator sends the row-level prompt, fixed document text, and row-level data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus and normalized through a Pydantic-compatible model in the evaluator.
 
 ## Normalization Policy
 
@@ -90,7 +90,7 @@ Retries can be added later as a separate evaluation track, but the baseline shou
 
 ## Result Record Shape
 
-The initial result record should be able to capture identity, scoring, reliability, latency, usage, and cost.
+The evaluator should write a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. The individual result row should capture identity, scoring, reliability, latency, usage, and cost.
 
 Suggested fields:
 
@@ -122,9 +122,11 @@ Suggested fields:
 
 Token and cost fields should be populated from LiteLLM response metadata where available. Missing provider metadata should be recorded as `null`, not guessed silently.
 
-## Leaderboard Policy
+## Reporting Handoff
 
-First version:
+The evaluator records `runs` and `run_test_cases`. It does not aggregate scores or decide cross-model rankings.
+
+Reporting systems can read `run_test_cases` and decide how to aggregate and compare models. A first reporting policy may:
 
 - Rank models by score on completed parsing attempts.
 - Count `zero_score` attempts as `0`.
@@ -132,4 +134,4 @@ First version:
 - Display latency and cost as secondary columns.
 - Do not retry, repair, or agentically improve the model response.
 
-This keeps model parsing quality separate from infrastructure reliability while still making malformed returned output hurt the model's score.
+This keeps model parsing quality separate from infrastructure reliability while still making malformed returned output hurt the model's score. The ranking decision itself belongs outside the core evaluator.
