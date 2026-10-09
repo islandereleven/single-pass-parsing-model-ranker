@@ -1,8 +1,8 @@
 # Phase Status
 
-Current phase: **Phase A exit / Phase B entry**.
+Current phase: **Phase B entry**.
 
-The project has moved beyond mission concept. The document and corpus contract exists as files, code, and tests. The next step is to freeze the remaining evaluation requirements, then design the model-running and ranking pipeline around that contract.
+The project has moved beyond mission concept and requirements capture. The document/corpus contract exists as files, code, and tests, and the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md). The next step is to design the model-running and ranking pipeline around that contract.
 
 ## Completed Gates
 
@@ -21,7 +21,7 @@ Completed evidence:
 
 ### Phase A: Requirements
 
-Status: **mostly complete, at exit gate**.
+Status: **complete for current scope**.
 
 Completed evidence:
 
@@ -31,12 +31,12 @@ Completed evidence:
 - Document files are protected by SHA-256 checksums.
 - `load_corpus` loads corpus rows, checks registry links, confirms document existence, and detects checksum drift.
 - Tests cover loading, document reading, checksum drift, and unknown document references.
+- [evaluation-contract.md](evaluation-contract.md) defines scoring, normalization, zero-score runs, failed runs, and the first result record shape.
 
-Remaining Phase A work:
+Deferred Phase A refinements:
 
-- Define failure-mode categories for invalid JSON, missing fields, extra fields, wrong types, wrong values, refusal, timeout, and provider error.
-- Decide the first accuracy scoring policy: exact-match only, typed normalization, fuzzy string matching, or weighted field scoring.
-- Decide how strongly latency and price affect final ranking versus being displayed as secondary columns.
+- Define opt-in fuzzy matching metadata once the ground-truth dataset needs it.
+- Decide how strongly latency and price affect final ranking versus being displayed as secondary columns after the first results exist.
 - Decide whether `data_model` remains JSON Schema only or whether Pydantic models become a first-class source format.
 
 ## Active Work
@@ -52,9 +52,9 @@ Phase B should design the evaluator pipeline around the existing corpus contract
 3. Build prompt from document text and row-level `data_model`.
 4. Run one model call through LiteLLM.
 5. Parse model output as JSON.
-6. Validate output against the row data model.
-7. Score output against `ground_truth`.
-8. Record latency, token usage, estimated price, raw response metadata, and failure mode.
+6. Normalize model output and ground truth through the row data model.
+7. Score normalized output against normalized ground truth.
+8. Record latency, token usage, estimated cost, raw response metadata, run status, and failure reason.
 9. Export rankings for website display.
 
 Phase B exit criteria:

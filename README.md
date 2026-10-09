@@ -19,7 +19,7 @@ The system should answer:
 
 - **Single pass first:** one LLM call per document-case/model pair.
 - **Text input first:** PDFs, HTML, DOCX, OCR text, and other sources are converted into a canonical text format before evaluation.
-- **Data-model-driven output:** each test case provides a JSON-compatible data model that defines the expected output shape.
+- **Data-model-driven output:** each test case provides a JSON-compatible, Pydantic-compatible data model that defines the expected output shape.
 - **Ground-truth comparison:** model output is scored against the test case's expected JSON object.
 - **Accuracy primary:** parsing accuracy is the mission-critical metric.
 - **Latency and price secondary:** speed and cost are tracked, reported, and used as tie-breakers.
@@ -27,9 +27,9 @@ The system should answer:
 
 ## NASA-Inspired Lifecycle
 
-Current phase: **Phase A exit / Phase B entry**.
+Current phase: **Phase B entry**.
 
-The mission concept is set, and the first evaluation data contract now exists in code and fixtures. The current work is to stabilize that contract, then move into the architecture for model execution, scoring, result storage, and website publishing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
+The mission concept and Phase A requirements are set. The first evaluation data contract now exists in code and fixtures, and the scoring semantics are documented. The current work is Phase B architecture for model execution, scoring, result storage, and website publishing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -118,6 +118,7 @@ single-pass-parsing-model-ranker/
 ├── README.md
 ├── pyproject.toml
 ├── docs/
+│   ├── evaluation-contract.md
 │   └── phase-status.md
 ├── documents/
 │   ├── acme_invoice.txt
@@ -156,6 +157,8 @@ Each corpus row has this shape:
 
 The fixed document registry is checksum-protected so source document drift is caught before evaluation. The corpus table itself is versioned as a whole, so row-level changes do not silently rewrite history.
 
+The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, exact match is the default scoring policy, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
+
 Implemented contract pieces:
 
 - `documents/documents.json` declares fixed source documents, paths, and checksums.
@@ -168,8 +171,8 @@ Not implemented yet:
 - Model candidate registry.
 - LiteLLM execution wrapper.
 - Prompt assembly.
-- Response JSON parsing and schema validation.
-- Accuracy scoring.
+- Response JSON parsing and data-model normalization.
+- Accuracy scoring implementation.
 - Result persistence and leaderboard export.
 
 ## Development
@@ -188,6 +191,6 @@ PYTHONPATH=src python -m unittest discover -s tests
 
 ## Current Status
 
-Pre-Phase A is complete. Phase A is at its exit gate: the corpus/document contract has a working implementation and tests, but the project still needs a short requirements pass over scoring and failure modes before the gate is fully closed.
+Pre-Phase A is complete. Phase A is closed for the current scope: the corpus/document contract and evaluation semantics are documented, and the corpus loader has tests.
 
-Phase B is starting around the evaluator architecture: LiteLLM model calls, prompt construction, output validation, scoring, ranking, result storage, and export formats for islandereleven.com.
+Phase B is starting around the evaluator architecture: LiteLLM model calls, prompt construction, output normalization, scoring, ranking, result storage, and export formats for islandereleven.com.
