@@ -1,6 +1,6 @@
 # Phase Status
 
-Current phase: **Phase B entry**.
+Current phase: **Phase B closeout**.
 
 The project has moved beyond mission concept and requirements capture. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), and the evaluator architecture is being defined in [evaluator-architecture.md](evaluator-architecture.md).
 
@@ -43,7 +43,7 @@ Deferred Phase A refinements:
 
 ### Phase B: Architecture
 
-Status: **starting**.
+Status: **near closeout**.
 
 Phase B should design the evaluator pipeline around the existing corpus contract:
 
@@ -61,7 +61,7 @@ Phase B exit criteria:
 - Model/provider settings are defined.
 - Evaluator config representation is defined.
 - Prompt contract is defined.
-- LiteLLM call boundary is defined.
+- Vanilla LiteLLM call shape is defined.
 - Attempt/result schema is defined.
 - `runs` storage format is defined.
 - `run_test_cases` storage format is defined.

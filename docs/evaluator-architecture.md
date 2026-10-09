@@ -23,6 +23,25 @@ One invocation creates one run. Running multiple models, or running the same mod
 8. Write each test case result to `run_test_cases`.
 9. Update the `runs` row with final run status.
 
+## Run Config
+
+A run config describes one run only.
+
+Minimum fields:
+
+- provider/model identifier in the form LiteLLM expects
+- corpus version, or omitted to use latest
+- local output table paths, or omitted to use defaults
+
+Model settings should use LiteLLM defaults unless explicitly set. The first evaluator does not need a separate model registry or candidate abstraction.
+
+Initial output storage is intentionally thin:
+
+- print run progress/results to the terminal
+- write local repo tables for `runs` and `run_test_cases`
+
+Later, those same rows can be copied into the islandereleven.com datalake. The evaluator should not depend on the datalake for the first prototype.
+
 ## `runs`
 
 The `runs` table records run identity, configuration, status, and reproducibility metadata. It does not store aggregate scoring or cost metrics.
@@ -112,6 +131,34 @@ Sequential execution can stop scheduling more test cases after a provider/infras
 
 Parallel execution can schedule test cases independently. If one provider/infrastructure failure occurs, the run is still marked failed, but completed test case rows remain useful for debugging and reporting.
 
+## Prompt Assembly
+
+The first prompt builder should be a simple f-string.
+
+It should include:
+
+- row-level `prompt`
+- fixed document text
+- row-level `data_model`
+
+No system prompt split, chat-message abstraction, or prompt template framework is needed for the first prototype unless LiteLLM mechanically requires a message shape.
+
+## LiteLLM Call
+
+The evaluator should use a vanilla LiteLLM call with the assembled prompt and the response model/schema.
+
+It should capture:
+
+- returned content
+- raw response metadata when available
+- latency
+- input tokens
+- output tokens
+- reasoning tokens, when available
+- estimated cost, when available
+
+No heavy wrapper or adapter layer is needed yet.
+
 ## Reporting Handoff
 
 The evaluator writes facts. Reporting makes rankings.
@@ -159,7 +206,7 @@ Phase B is complete when these contracts are defined well enough to implement:
 - `runs` record
 - `run_test_cases` record
 - final prompt assembly contract
-- LiteLLM call boundary
+- vanilla LiteLLM call shape
 - output classification rules
 - run status rules
 - reporting handoff fields
