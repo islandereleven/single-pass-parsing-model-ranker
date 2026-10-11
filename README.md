@@ -29,9 +29,9 @@ The system should answer:
 
 ## Systems Design Lifecycle
 
-Current phase: **Phase B entry**.
+Current phase: **Phase C entry**.
 
-The mission concept and Phase A requirements are set. The first evaluation data contract now exists in code and fixtures, and the scoring semantics are documented. The current work is Phase B architecture for model execution, scoring, result storage, and website publishing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
+The mission concept, Phase A requirements, and Phase B architecture are set. The current work is Phase C: building the first runnable evaluator over the example corpus. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -127,58 +127,63 @@ single-pass-parsing-model-ranker/
 │   ├── acme_invoice.txt
 │   └── documents.json
 ├── corpora/
+│   ├── corpora.json
 │   └── 0.1.0.json
 ├── src/
 │   └── single_pass_parsing_ranker/
 │       ├── __init__.py
-│       └── data.py
+│       ├── data.py
+│       └── models.py
 └── tests/
     ├── .gitkeep
-    └── test_corpus.py
+    ├── test_corpus.py
+    └── test_models.py
 ```
 
 ## Core Concepts
 
-- **Document registry:** the fixed set of source documents, addressed by stable document IDs and protected by document checksums.
-- **Corpus table:** one versioned table of test cases over the fixed document registry.
-- **TestCase:** one corpus table row with `test_case_id`, `document_id`, `prompt`, `data_model`, and `ground_truth`.
-- **Model config:** provider, model, and runtime settings being evaluated.
+- **Document registry:** a flat list of source documents, addressed by stable UUIDs and protected by checksums.
+- **Corpus table:** a flat list of corpus UUIDs and versions.
+- **TestCase:** one corpus row with `corpus_id`, `test_case_id`, `document_id`, `data_model`, `prompt`, and `ground_truth`.
+- **Run:** one model/corpus evaluation, including provider settings, status, and reproducibility metadata.
 - **ParseAttempt:** one model's single-pass output for one document case.
 - **AccuracyScore:** field-level comparison between expected JSON and model JSON.
-- **Run:** one model evaluated against one corpus version.
 - **RunTestCase:** one model call and result for one corpus test case inside a run.
 
 ## Data Contract
 
-Raw documents live in a fixed document registry outside the versioned corpus table. A corpus version is the whole table: if a row is added, removed, or corrected, or if any row's `prompt`, `data_model`, or `ground_truth` changes, that creates a new corpus version.
+Raw documents and corpus metadata live in separate flat tables. The data model is baked into each versioned test-case row, so a corpus file is self-contained apart from the fixed document registry. If a row is added, removed, or corrected, or if any row's `prompt`, `data_model`, or `ground_truth` changes, that creates a new corpus version.
 
-Each corpus row has this shape:
+Each `TestCase` row has this shape:
 
-- `test_case_id`: stable ID for this evaluation row.
-- `document_id`: fixed source document to parse.
+- `test_case_id`: stable UUID for this evaluation row.
+- `corpus_id`: corpus UUID this row belongs to.
+- `document_id`: fixed source document UUID to parse.
+- `data_model`: row-level extraction schema.
 - `prompt`: reusable extraction instruction for the model attempt.
-- `data_model`: JSON Schema-style object defining the expected output shape.
 - `ground_truth`: expected JSON object for that document and data model.
 
-The fixed document registry is checksum-protected so source document drift is caught before evaluation. The corpus table itself is versioned as a whole, so row-level changes do not silently rewrite history.
+The fixed document registry is checksum-protected so source document drift is caught before evaluation. Test cases reference corpora and documents by id, while the data model stays inside the corpus row.
 
 The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, exact match is the default scoring policy, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
 
 Implemented contract pieces:
 
-- `documents/documents.json` declares fixed source documents, paths, and checksums.
-- `corpora/0.1.0.json` declares a versioned corpus table over that document registry.
-- `src/single_pass_parsing_ranker/data.py` loads the corpus, validates registry links, and checks document SHA-256 drift.
-- `tests/test_corpus.py` covers the example corpus, document reading, checksum drift, and unknown document references.
+- `documents/documents.json` is a flat list of fixed source documents, paths, and checksums.
+- `corpora/corpora.json` is a flat corpus table.
+- `corpora/0.1.0.json` is a flat test-case table with inline data models.
+- `src/single_pass_parsing_ranker/data.py` loads the normalized tables, validates references, checks registry links, and detects document SHA-256 drift.
+- `src/single_pass_parsing_ranker/models.py` defines `Corpus`, `Document`, `TestCase`, run row, run-test-case row, status enums, failure taxonomy, and storage schemas.
+- `tests/test_corpus.py` covers the example corpus, document reading, data-model validation, checksum drift, and unknown document references.
+- `tests/test_models.py` covers the run/result storage models and generated storage schemas.
 
-Not implemented yet:
+Phase C implementation work:
 
-- Model/provider settings.
 - LiteLLM execution wrapper.
 - Prompt assembly.
 - Response JSON parsing and data-model normalization.
 - Accuracy scoring implementation.
-- `runs` and `run_test_cases` persistence.
+- JSONL persistence helpers for writing `runs` and `run_test_cases`.
 
 ## Development
 
@@ -196,6 +201,6 @@ PYTHONPATH=src python -m unittest discover -s tests
 
 ## Current Status
 
-Pre-Phase A is complete. Phase A is closed for the current scope: the corpus/document contract and evaluation semantics are documented, and the corpus loader has tests.
+Pre-Phase A, Phase A, and Phase B are complete for the current scope: the corpus/document contract, evaluation semantics, and evaluator architecture are documented and represented in code.
 
-Phase B is defining the evaluator architecture: one config creates one run for one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons are reporting concerns outside the core evaluator.
+Phase C starts the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons remain reporting concerns outside the core evaluator.

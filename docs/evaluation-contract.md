@@ -6,15 +6,18 @@ The goal is to keep the first evaluator brutally simple: one document, one row-l
 
 ## Inputs
 
-Each attempt is tied to one corpus row:
+Each attempt is tied to one `TestCase` row:
 
+- `corpus_id`
 - `test_case_id`
 - `document_id`
-- `prompt`
 - `data_model`
+- `prompt`
 - `ground_truth`
 
-The evaluator sends the row-level prompt, fixed document text, and row-level data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus and normalized through a Pydantic-compatible model in the evaluator.
+All `*_id` fields are UUID strings on disk and UUID values in code.
+
+The evaluator resolves `document_id` through the document table. It sends the row-level prompt, fixed document text, and inline data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus row and normalized through a Pydantic-compatible model in the evaluator.
 
 ## Normalization Policy
 
@@ -25,7 +28,7 @@ Both sides of the comparison must pass through the same model contract:
 3. Normalize the parsed LLM output through the same row data model.
 4. Compare normalized output to normalized ground truth.
 
-The Pydantic-compatible data model is the authority for types, required fields, nested shapes, and any allowed coercion. If the ground truth cannot normalize through its own row data model, the corpus row is invalid and should be fixed before the run is trusted.
+The Pydantic-compatible data model is the authority for types, required fields, nested shapes, and any allowed coercion. If the ground truth cannot normalize through its own row data model, the `TestCase` row is invalid and should be fixed before the run is trusted.
 
 ## Scoring Policy
 
@@ -96,9 +99,7 @@ Suggested fields:
 
 - `run_id`
 - `corpus_id`
-- `corpus_version`
 - `test_case_id`
-- `document_id`
 - `model_provider`
 - `model_name`
 - `run_status`
@@ -107,7 +108,6 @@ Suggested fields:
 - `raw_output`
 - `parsed_output`
 - `normalized_output`
-- `normalized_ground_truth`
 - `latency_ms`
 - `input_tokens`
 - `output_tokens`
@@ -117,7 +117,6 @@ Suggested fields:
 - `input_cost_usd`
 - `output_cost_usd`
 - `reasoning_cost_usd`
-- `cost_source`
 - `created_at`
 
 Token and cost fields should be populated from LiteLLM response metadata where available. Missing provider metadata should be recorded as `null`, not guessed silently.

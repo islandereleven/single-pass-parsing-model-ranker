@@ -1,21 +1,25 @@
 # Evaluator Architecture
 
-This document defines the Phase B architecture for turning one corpus and one model config into one run plus one row per test case.
+This document defines the Phase B architecture for turning one corpus and one model/settings set into one run plus one row per test case.
 
 The evaluator is intentionally flat:
 
-- `runs`: one row for one model evaluated against one corpus version.
+- `runs`: one row for one model evaluated against one corpus id.
 - `run_test_cases`: one row for each corpus test case attempted within that run.
 
 The evaluator does not compute ranking rows or store aggregate scores on `runs`. Reporting, BI, or a website export layer can aggregate `run_test_cases` however it wants.
 
 One invocation creates one run. Running multiple models, or running the same model/corpus more than once, means starting multiple independent runs outside this evaluator flow.
 
+The Phase B models live in one file, partitioned by usage: source tables and result rows. Test cases reference documents and corpora by id, with the data model baked into the test-case row.
+
+All `*_id` fields are UUID strings on disk and UUID values in code.
+
 ## Core Flow
 
-1. Load evaluator config.
-2. Resolve exactly one provider/model/settings config for this run.
-3. Resolve corpus version, defaulting to latest when omitted.
+1. Load or create one run.
+2. Resolve exactly one provider/model/settings set for this run.
+3. Resolve exactly one corpus id for the run.
 4. Create one `runs` row.
 5. Load the corpus and fixed document registry.
 6. Create or schedule one `run_test_cases` row per test case.
@@ -23,15 +27,14 @@ One invocation creates one run. Running multiple models, or running the same mod
 8. Write each test case result to `run_test_cases`.
 9. Update the `runs` row with final run status.
 
-## Run Config
+## `runs`
 
-A run config describes one run only.
+A run describes one model/corpus evaluation and its persisted status.
 
 Minimum fields:
 
 - provider/model identifier in the form LiteLLM expects
-- corpus version, or omitted to use latest
-- local output table paths, or omitted to use defaults
+- corpus id
 
 Model settings should use LiteLLM defaults unless explicitly set. The first evaluator does not need a separate model registry or candidate abstraction.
 
@@ -42,8 +45,6 @@ Initial output storage is intentionally thin:
 
 Later, those same rows can be copied into the islandereleven.com datalake. The evaluator should not depend on the datalake for the first prototype.
 
-## `runs`
-
 The `runs` table records run identity, configuration, status, and reproducibility metadata. It does not store aggregate scoring or cost metrics.
 
 Suggested fields:
@@ -53,12 +54,9 @@ Suggested fields:
 - model
 - model settings, such as temperature, timeout, and token limits
 - `corpus_id`
-- `corpus_version`
 - model/provider metadata
-- config snapshot
 - run status
 - failure reason, when the run fails
-- failure `test_case_id`, when applicable
 - start timestamp
 - end timestamp
 - created timestamp
@@ -74,18 +72,13 @@ Returned but malformed model output is not run failure. It is a `zero_score` tes
 
 The `run_test_cases` table is the durable fact table for analysis.
 
-Each row records one model call for one corpus row:
+Each row records one model call for one `TestCase` row:
 
 - `run_id`
 - `test_case_id`
-- `document_id`
-- prompt sent to the model
-- data model sent to the model
-- document text or document reference
 - raw LLM response
 - parsed output, when available
 - normalized output, when available
-- normalized ground truth
 - score
 - attempt status: `scored`, `zero_score`, or `failed`
 - failure reason, when applicable
@@ -139,7 +132,7 @@ It should include:
 
 - row-level `prompt`
 - fixed document text
-- row-level `data_model`
+- resolved data model
 
 No system prompt split, chat-message abstraction, or prompt template framework is needed for the first prototype unless LiteLLM mechanically requires a message shape.
 
@@ -177,32 +170,34 @@ Those policies are outside the core evaluator.
 ## Proposed Package Boundaries
 
 ```text
-data.py          # existing corpus/document loading
+models.py        # source and result models, sectioned by usage
+data.py          # normalized source-table loading
 config.py        # evaluator config and corpus selection
 prompts.py       # final call assembly from row prompt, document text, data model
 llm.py           # LiteLLM call boundary and response metadata extraction
 outcomes.py      # scored / zero_score / failed taxonomy
 normalize.py     # Pydantic-compatible data-model normalization
 scoring.py       # exact-match scoring after normalization
-results.py       # runs and run_test_cases persistence
+storage.py       # JSONL writing for runs and run_test_cases
 ```
 
 Design boundaries:
 
-- `data.py` does not know about LiteLLM or scoring.
-- `config.py` defines one run config for one provider/model/corpus combination.
+- `models.py` owns the shared source and result record shapes.
+- `data.py` loads normalized source tables and validates references, but does not know about LiteLLM or scoring.
+- `config.py` prepares one run for one provider/model/corpus combination, if needed.
 - `prompts.py` does not call models.
 - `llm.py` does not score outputs.
 - `scoring.py` does not know about provider responses.
-- `results.py` owns persistence for `runs` and `run_test_cases`.
+- `storage.py` owns persistence for `runs` and `run_test_cases`.
 - Aggregation, ranking, and comparison reporting live outside the core package.
 
 ## Phase B Exit Criteria
 
-Phase B is complete when these contracts are defined well enough to implement:
+Phase B is complete. These contracts are defined well enough to implement:
 
-- evaluator config shape
-- model config fields
+- run shape
+- model/settings fields
 - `runs` record
 - `run_test_cases` record
 - final prompt assembly contract
