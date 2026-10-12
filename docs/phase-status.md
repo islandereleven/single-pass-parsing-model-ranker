@@ -1,8 +1,8 @@
 # Phase Status
 
-Current phase: **Phase D readiness**.
+Current phase: **Phase E readiness**.
 
-The project has moved beyond mission concept, requirements capture, architecture definition, and the first working prototype. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), the evaluator architecture is defined in [evaluator-architecture.md](evaluator-architecture.md), and the Phase C prototype runs end to end against Gemini.
+The project has moved beyond mission concept, requirements capture, architecture definition, the first working prototype, and core evaluator verification. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), the evaluator architecture is defined in [evaluator-architecture.md](evaluator-architecture.md), the Phase C prototype runs end to end against Gemini, and Phase D verifies the core scoring/failure contract.
 
 ## Completed Gates
 
@@ -94,15 +94,31 @@ Deferred hardening:
 - File-backed JSONL storage for runs and run test cases.
 - Markdown export for publishable summaries.
 
-## Active Work
-
 ### Phase D: Verification
 
-Status: **ready to start**.
+Status: **complete for current scope**.
 
-Validate scoring and failure handling against golden fixtures.
+Validate scoring and failure handling against golden fixtures. See [phase-d-verification.md](phase-d-verification.md) for the verification checklist and manual CLI smoke commands.
+
+Phase D progress:
+
+- Scoring verification tests cover scalar mismatches, nested missing/extra fields, list index mismatches, list length drift, list order, and scalar equality after normalization.
+- Runner verification tests cover empty output, schema-invalid output, provider-side structured validation errors, missing provider responses, provider failure classification, invalid ground-truth fixtures, and parseable JSONL row emission.
+- Schema verification tests cover missing required fields, wrong field types, extra hallucinated keys, and refusal/prose output classification.
+- Metadata verification tests cover LiteLLM usage/cost extraction shapes, direct and nested reasoning-token fields, runner metadata copying, null behavior when provider metadata is missing, and pretty output summaries without raw response leakage.
+- Local CLI QA covers help output, invalid output-format rejection, and one live Gemini pretty-output smoke run over `corpora/0.1.0.json`.
+
+Deferred verification hardening:
+
+- Larger multi-document corpora.
+- Published ranking/report output validation.
+- File-backed storage/resume validation.
+
+## Active Work
 
 ### Phase E: Operations
+
+Status: **ready to start**.
 
 Run batches in the cloud and publish rankings on islandereleven.com.
 

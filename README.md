@@ -29,9 +29,9 @@ The system should answer:
 
 ## Systems Design Lifecycle
 
-Current phase: **Phase D readiness**.
+Current phase: **Phase E readiness**.
 
-The mission concept, Phase A requirements, Phase B architecture, and Phase C prototype are set. The next work is Phase D: verifying scoring and failure behavior against golden fixtures. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
+The mission concept, Phase A requirements, Phase B architecture, Phase C prototype, and Phase D core verification are set. The next work is Phase E: running batches and preparing publishable rankings. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -122,6 +122,7 @@ single-pass-parsing-model-ranker/
 ├── docs/
 │   ├── evaluator-architecture.md
 │   ├── evaluation-contract.md
+│   ├── phase-d-verification.md
 │   └── phase-status.md
 ├── documents/
 │   ├── acme_invoice.txt
@@ -249,8 +250,10 @@ Run tests:
 poetry run python -m unittest discover -s tests
 ```
 
+Phase D verification details live in [docs/phase-d-verification.md](docs/phase-d-verification.md). The automated suite does not call live model providers; live smoke checks are manual CLI runs.
+
 ## Current Status
 
 Pre-Phase A, Phase A, and Phase B are complete for the current scope: the corpus/document contract, evaluation semantics, and evaluator architecture are documented and represented in code.
 
-Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons remain reporting concerns outside the core evaluator. Phase D starts verification against golden fixtures and failure-mode cases.
+Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Phase D verified the core scoring, metadata, CLI, and failure-mode behavior. Aggregation, model comparisons, batch execution, and publishable outputs are Phase E concerns.

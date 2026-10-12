@@ -40,6 +40,45 @@ def _response(content: str) -> SimpleNamespace:
     )
 
 
+def _dict_usage_response(content: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        id="response-002",
+        model="gemini-2.5-flash",
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=content),
+            )
+        ],
+        usage={
+            "prompt_tokens": 20,
+            "completion_tokens": 8,
+            "total_tokens": 28,
+            "completion_tokens_details": {"reasoning_tokens": 3},
+        },
+        _hidden_params={
+            "_response_ms": 100.2,
+            "response_cost": 0.0045,
+        },
+    )
+
+
+def _direct_reasoning_tokens_response(content: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=content),
+            )
+        ],
+        usage=SimpleNamespace(
+            prompt_tokens=9,
+            completion_tokens=4,
+            reasoning_tokens=7,
+            total_tokens=20,
+        ),
+        _hidden_params={},
+    )
+
+
 class LLMTests(unittest.TestCase):
     def test_extract_litellm_result_keeps_structured_output_as_raw_string(self) -> None:
         result = extract_litellm_result(_response('{"vendor":"Acme Corp","total":123.45}'))
@@ -52,6 +91,25 @@ class LLMTests(unittest.TestCase):
         self.assertEqual(result.latency_ms, 433)
         self.assertEqual(result.estimated_cost_usd, 0.0123)
         self.assertEqual(result.raw_response_metadata["hidden_params"]["response_cost"], 0.0123)
+
+    def test_extract_litellm_result_accepts_dict_usage_metadata(self) -> None:
+        result = extract_litellm_result(_dict_usage_response('{"vendor":"Acme Corp","total":123.45}'))
+
+        self.assertEqual(result.raw_output, '{"vendor":"Acme Corp","total":123.45}')
+        self.assertEqual(result.raw_response_metadata["id"], "response-002")
+        self.assertEqual(result.raw_response_metadata["model"], "gemini-2.5-flash")
+        self.assertEqual(result.input_tokens, 20)
+        self.assertEqual(result.output_tokens, 8)
+        self.assertEqual(result.reasoning_tokens, 3)
+        self.assertEqual(result.total_tokens, 28)
+        self.assertEqual(result.latency_ms, 100)
+        self.assertEqual(result.estimated_cost_usd, 0.0045)
+
+    def test_extract_litellm_result_accepts_direct_reasoning_tokens(self) -> None:
+        result = extract_litellm_result(_direct_reasoning_tokens_response('{"vendor":"Acme Corp","total":123.45}'))
+
+        self.assertEqual(result.reasoning_tokens, 7)
+        self.assertEqual(result.raw_response_metadata["usage"]["reasoning_tokens"], 7)
 
     def test_request_structured_parse_uses_litellm_schema_validation(self) -> None:
         calls = []
