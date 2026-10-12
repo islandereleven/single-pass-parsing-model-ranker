@@ -1,0 +1,442 @@
+"""Sequential evaluator runner."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from datetime import UTC, datetime
+import json
+import os
+from pathlib import Path
+from typing import Any, Literal
+from uuid import UUID, uuid4
+
+from single_pass_parsing_ranker.data import load_corpus, load_documents
+from single_pass_parsing_ranker.llm import (
+    LLMCallError,
+    LLMResponseError,
+    StructuredOutputValidationError,
+    request_structured_parse,
+)
+from single_pass_parsing_ranker.models import (
+    AttemptStatus,
+    FailureReason,
+    JsonObject,
+    LLMCallResult,
+    Run,
+    RunStatus,
+    RunTestCase,
+    TestCase,
+)
+from single_pass_parsing_ranker.normalize import (
+    JsonParseError,
+    SchemaValidationError,
+    normalize_json_value,
+    parse_json_output,
+)
+from single_pass_parsing_ranker.prompts import build_prompt
+from single_pass_parsing_ranker.scoring import score_json_values
+from single_pass_parsing_ranker.storage import append_run, append_run_test_case
+
+
+class RunnerError(RuntimeError):
+    pass
+
+
+OutputFormat = Literal["pretty", "jsonl"]
+
+
+_SECRET_SETTING_KEYS = {
+    "api_key",
+    "apikey",
+    "authorization",
+    "bearer_token",
+    "client_secret",
+    "credential",
+    "credentials",
+    "password",
+    "refresh_token",
+    "secret",
+    "access_token",
+    "id_token",
+}
+
+
+def run_evaluation(
+    *,
+    model: str,
+    corpus_path: str | Path,
+    runs_path: str | Path = "runs/runs.jsonl",
+    run_test_cases_path: str | Path = "runs/run_test_cases.jsonl",
+    provider: str | None = None,
+    model_settings: JsonObject | None = None,
+    run_id: UUID | None = None,
+    corpus_table_path: str | Path | None = None,
+    document_registry_path: str | Path | None = None,
+    env_path: str | Path | None = ".env",
+    output_format: OutputFormat = "pretty",
+    structured_parse_request: Callable[..., LLMCallResult] = request_structured_parse,
+) -> Run:
+    _load_env_file(env_path)
+    settings = dict(model_settings or {})
+    _reject_secret_model_settings(settings)
+    _validate_output_format(output_format)
+
+    corpus_path = Path(corpus_path).resolve()
+    rows = load_corpus(
+        corpus_path,
+        corpus_table_path=corpus_table_path,
+        document_registry_path=document_registry_path,
+    )
+    if not rows:
+        raise RunnerError(f"Corpus has no test cases: {corpus_path}")
+
+    corpus_id = _single_corpus_id(rows)
+    documents = load_documents(_document_registry_path(corpus_path, document_registry_path))
+    run = Run(
+        run_id=run_id or uuid4(),
+        model=model,
+        provider=provider,
+        corpus_id=corpus_id,
+        model_settings=settings,
+    )
+    _emit_run_start(run, output_format)
+
+    run_status = RunStatus.COMPLETED
+    run_failure_reason: FailureReason | None = None
+    for index, test_case in enumerate(rows, start=1):
+        row = _run_test_case(
+            run=run,
+            test_case=test_case,
+            document_text=documents[test_case.document_id].path.read_text(encoding="utf-8"),
+            request_structured_parse=structured_parse_request,
+        )
+        _emit_run_test_case(run_test_cases_path, row, output_format, index=index, total=len(rows))
+
+        if row.status == AttemptStatus.FAILED:
+            run_status = RunStatus.FAILED
+            run_failure_reason = row.failure_reason
+            break
+
+    final_run = run.model_copy(
+        update={
+            "status": run_status,
+            "failure_reason": run_failure_reason,
+            "ended_at": _utc_now(),
+        }
+    )
+    _emit_run(runs_path, final_run, output_format)
+    return final_run
+
+
+def _run_test_case(
+    *,
+    run: Run,
+    test_case: TestCase,
+    document_text: str,
+    request_structured_parse: Callable[..., LLMCallResult],
+) -> RunTestCase:
+    started_at = _utc_now()
+    try:
+        normalized_ground_truth = normalize_json_value(test_case.ground_truth, test_case.data_model)
+    except SchemaValidationError as exc:
+        raise RunnerError(f"Invalid ground_truth for test_case_id: {test_case.test_case_id}") from exc
+
+    prompt = build_prompt(
+        instruction=test_case.prompt,
+        document_text=document_text,
+        data_model=test_case.data_model,
+    )
+
+    try:
+        llm_result = request_structured_parse(
+            model=run.model,
+            prompt=prompt,
+            data_model=test_case.data_model,
+            model_settings=run.model_settings,
+        )
+    except StructuredOutputValidationError:
+        return _result_row(
+            run=run,
+            test_case=test_case,
+            status=AttemptStatus.ZERO_SCORE,
+            score=0.0,
+            failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
+            started_at=started_at,
+        )
+    except LLMResponseError:
+        return _result_row(
+            run=run,
+            test_case=test_case,
+            status=AttemptStatus.FAILED,
+            failure_reason=FailureReason.NO_RESPONSE,
+            started_at=started_at,
+        )
+    except LLMCallError as exc:
+        return _result_row(
+            run=run,
+            test_case=test_case,
+            status=AttemptStatus.FAILED,
+            failure_reason=_failure_reason_for_llm_error(exc),
+            started_at=started_at,
+        )
+
+    try:
+        parsed_output = parse_json_output(llm_result.raw_output)
+    except JsonParseError:
+        reason = FailureReason.EMPTY_RESPONSE if not llm_result.raw_output.strip() else FailureReason.INVALID_JSON
+        return _result_row(
+            run=run,
+            test_case=test_case,
+            llm_result=llm_result,
+            status=AttemptStatus.ZERO_SCORE,
+            score=0.0,
+            failure_reason=reason,
+            started_at=started_at,
+        )
+
+    try:
+        normalized_output = normalize_json_value(parsed_output, test_case.data_model)
+    except SchemaValidationError:
+        return _result_row(
+            run=run,
+            test_case=test_case,
+            llm_result=llm_result,
+            status=AttemptStatus.ZERO_SCORE,
+            score=0.0,
+            failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
+            parsed_output=parsed_output,
+            started_at=started_at,
+        )
+
+    return _result_row(
+        run=run,
+        test_case=test_case,
+        llm_result=llm_result,
+        status=AttemptStatus.SCORED,
+        score=score_json_values(normalized_output, normalized_ground_truth),
+        parsed_output=parsed_output,
+        normalized_output=normalized_output,
+        started_at=started_at,
+    )
+
+
+def _result_row(
+    *,
+    run: Run,
+    test_case: TestCase,
+    status: AttemptStatus,
+    started_at: datetime,
+    llm_result: LLMCallResult | None = None,
+    score: float | None = None,
+    failure_reason: FailureReason | None = None,
+    parsed_output: Any = None,
+    normalized_output: Any = None,
+) -> RunTestCase:
+    return RunTestCase(
+        run_id=run.run_id,
+        test_case_id=test_case.test_case_id,
+        status=status,
+        score=score,
+        failure_reason=failure_reason,
+        raw_output=llm_result.raw_output if llm_result else None,
+        raw_response_metadata=llm_result.raw_response_metadata if llm_result else {},
+        parsed_output=parsed_output,
+        normalized_output=normalized_output,
+        latency_ms=llm_result.latency_ms if llm_result else None,
+        input_tokens=llm_result.input_tokens if llm_result else None,
+        output_tokens=llm_result.output_tokens if llm_result else None,
+        reasoning_tokens=llm_result.reasoning_tokens if llm_result else None,
+        total_tokens=llm_result.total_tokens if llm_result else None,
+        estimated_cost_usd=llm_result.estimated_cost_usd if llm_result else None,
+        started_at=started_at,
+        ended_at=_utc_now(),
+    )
+
+
+def _single_corpus_id(rows: tuple[TestCase, ...]) -> UUID:
+    corpus_ids = {row.corpus_id for row in rows}
+    if len(corpus_ids) != 1:
+        raise RunnerError("A run must target exactly one corpus_id")
+    return next(iter(corpus_ids))
+
+
+def _document_registry_path(corpus_path: Path, document_registry_path: str | Path | None) -> Path:
+    if document_registry_path is not None:
+        return Path(document_registry_path)
+    return corpus_path.parent / "../documents/documents.json"
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _validate_output_format(output_format: str) -> None:
+    if output_format not in ("pretty", "jsonl"):
+        raise RunnerError(f"Unknown output_format: {output_format}")
+
+
+def _emit_run_start(run: Run, output_format: OutputFormat) -> None:
+    if output_format == "jsonl":
+        return
+
+    print(f"Run {run.run_id}")
+    print(f"  model: {run.model}")
+    if run.provider:
+        print(f"  provider: {run.provider}")
+    print(f"  corpus: {run.corpus_id}")
+    if run.model_settings:
+        settings = json.dumps(run.model_settings, sort_keys=True)
+        print(f"  settings: {settings}")
+
+
+def _emit_run_test_case(
+    path: str | Path,
+    row: RunTestCase,
+    output_format: OutputFormat,
+    *,
+    index: int,
+    total: int,
+) -> None:
+    if output_format == "jsonl":
+        append_run_test_case(path, row)
+        return
+
+    print("")
+    print(f"Test case {index}/{total}: {row.test_case_id}")
+    print(f"  status: {row.status.value}")
+    print(f"  score: {_format_score(row.score)}")
+    if row.failure_reason:
+        print(f"  failure: {row.failure_reason.value}")
+    print(f"  latency: {_format_ms(row.latency_ms)}")
+    print(f"  tokens: {_format_tokens(row)}")
+    print(f"  cost: {_format_money(row.estimated_cost_usd)}")
+
+
+def _emit_run(path: str | Path, run: Run, output_format: OutputFormat) -> None:
+    if output_format == "jsonl":
+        append_run(path, run)
+        return
+
+    print("")
+    print(f"Run {run.status.value}: {run.run_id}")
+    if run.failure_reason:
+        print(f"  failure: {run.failure_reason.value}")
+    if run.ended_at:
+        elapsed = (run.ended_at - run.started_at).total_seconds()
+        print(f"  elapsed: {elapsed:.2f}s")
+
+
+def _format_score(score: float | None) -> str:
+    if score is None:
+        return "n/a"
+    return f"{score:.3f}"
+
+
+def _format_ms(value: int | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value}ms"
+
+
+def _format_money(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"${value:.6f}"
+
+
+def _format_tokens(row: RunTestCase) -> str:
+    if row.total_tokens is None:
+        return "n/a"
+
+    parts = [str(row.total_tokens)]
+    details = []
+    if row.input_tokens is not None:
+        details.append(f"in {row.input_tokens}")
+    if row.output_tokens is not None:
+        details.append(f"out {row.output_tokens}")
+    if row.reasoning_tokens is not None:
+        details.append(f"reasoning {row.reasoning_tokens}")
+    if details:
+        parts.append(f"({', '.join(details)})")
+    return " ".join(parts)
+
+
+def _load_env_file(env_path: str | Path | None) -> None:
+    if env_path is None:
+        return
+
+    path = Path(env_path)
+    if not path.is_file():
+        return
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+
+        os.environ[key] = _unquote_env_value(value.strip())
+
+
+def _unquote_env_value(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
+
+
+def _reject_secret_model_settings(settings: JsonObject) -> None:
+    for path, value in _walk_mapping(settings):
+        if value is None:
+            continue
+        key = path.rsplit(".", 1)[-1].lower().replace("-", "_")
+        if _is_secret_setting_key(key):
+            raise RunnerError(f"model_settings must not contain secret-like key: {path}")
+
+
+def _walk_mapping(value: Any, path: str = "") -> tuple[tuple[str, Any], ...]:
+    if not isinstance(value, dict):
+        return ()
+
+    items: list[tuple[str, Any]] = []
+    for key, child in value.items():
+        child_path = str(key) if not path else f"{path}.{key}"
+        items.append((child_path, child))
+        items.extend(_walk_mapping(child, child_path))
+    return tuple(items)
+
+
+def _is_secret_setting_key(key: str) -> bool:
+    return (
+        key in _SECRET_SETTING_KEYS
+        or key.endswith("_api_key")
+        or key.endswith("_secret")
+        or key.endswith("_password")
+        or key.endswith("_token")
+    )
+
+
+def _failure_reason_for_llm_error(exc: LLMCallError) -> FailureReason:
+    text = _exception_chain_text(exc)
+    if "auth" in text or "permission" in text or "unauthorized" in text:
+        return FailureReason.AUTH_ERROR
+    if "rate_limit" in text or "ratelimit" in text or "rate limit" in text:
+        return FailureReason.RATE_LIMIT
+    if "timeout" in text or "timed out" in text:
+        return FailureReason.TIMEOUT
+    if "network" in text or "connection" in text or "dns" in text:
+        return FailureReason.NETWORK_ERROR
+    return FailureReason.PROVIDER_ERROR
+
+
+def _exception_chain_text(exc: BaseException) -> str:
+    parts: list[str] = []
+    current: BaseException | None = exc
+    while current is not None:
+        parts.append(type(current).__name__)
+        parts.append(str(current))
+        current = current.__cause__ or current.__context__
+    return " ".join(parts).lower()

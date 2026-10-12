@@ -29,9 +29,9 @@ The system should answer:
 
 ## Systems Design Lifecycle
 
-Current phase: **Phase C entry**.
+Current phase: **Phase D readiness**.
 
-The mission concept, Phase A requirements, and Phase B architecture are set. The current work is Phase C: building the first runnable evaluator over the example corpus. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
+The mission concept, Phase A requirements, Phase B architecture, and Phase C prototype are set. The next work is Phase D: verifying scoring and failure behavior against golden fixtures. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -132,8 +132,15 @@ single-pass-parsing-model-ranker/
 ├── src/
 │   └── single_pass_parsing_ranker/
 │       ├── __init__.py
+│       ├── cli.py
 │       ├── data.py
-│       └── models.py
+│       ├── llm.py
+│       ├── models.py
+│       ├── normalize.py
+│       ├── prompts.py
+│       ├── runner.py
+│       ├── scoring.py
+│       └── storage.py
 └── tests/
     ├── .gitkeep
     ├── test_corpus.py
@@ -165,7 +172,7 @@ Each `TestCase` row has this shape:
 
 The fixed document registry is checksum-protected so source document drift is caught before evaluation. Test cases reference corpora and documents by id, while the data model stays inside the corpus row.
 
-The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, exact match is the default scoring policy, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
+The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, field-level exact match is the default scoring policy, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
 
 Implemented contract pieces:
 
@@ -177,13 +184,54 @@ Implemented contract pieces:
 - `tests/test_corpus.py` covers the example corpus, document reading, data-model validation, checksum drift, and unknown document references.
 - `tests/test_models.py` covers the run/result storage models and generated storage schemas.
 
-Phase C implementation work:
+Phase C is complete for the current scope. Pieces now in place:
 
-- LiteLLM execution wrapper.
 - Prompt assembly.
-- Response JSON parsing and data-model normalization.
-- Accuracy scoring implementation.
-- JSONL persistence helpers for writing `runs` and `run_test_cases`.
+- Readable terminal output plus raw JSONL row emission for `runs` and `run_test_cases`.
+- LiteLLM structured-output call wrapper.
+- Response JSON parsing plus shared JSON Schema normalization for output and ground truth.
+- Field-level exact-match scoring.
+- Sequential evaluator runner glue.
+- CLI entry point.
+- Live Gemini smoke test over `corpora/0.1.0.json`.
+
+Deferred hardening:
+
+- File-backed JSONL storage for runs and run test cases.
+- Markdown export for publishable summaries.
+
+## Local Credentials
+
+Copy `.env.example` to `.env` and fill in local provider credentials. The real `.env` file is gitignored.
+
+For Gemini/LiteLLM runs:
+
+```bash
+GEMINI_API_KEY=...
+```
+
+The runner loads `.env` into the process environment when present, but does not store API keys in result rows. Provider credentials should not be passed through `model_settings`.
+
+Run the example corpus with readable terminal output:
+
+```bash
+poetry run single-pass-ranker run \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus corpora/0.1.0.json \
+  --temperature 0
+```
+
+Print raw JSON rows instead:
+
+```bash
+poetry run single-pass-ranker run \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus corpora/0.1.0.json \
+  --temperature 0 \
+  --output-format jsonl
+```
 
 ## Development
 
@@ -193,14 +241,16 @@ Install dependencies:
 poetry install
 ```
 
+Run `poetry install` again after script entry-point changes so `poetry run single-pass-ranker` is installed cleanly.
+
 Run tests:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests
+poetry run python -m unittest discover -s tests
 ```
 
 ## Current Status
 
 Pre-Phase A, Phase A, and Phase B are complete for the current scope: the corpus/document contract, evaluation semantics, and evaluator architecture are documented and represented in code.
 
-Phase C starts the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons remain reporting concerns outside the core evaluator.
+Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Aggregation and model comparisons remain reporting concerns outside the core evaluator. Phase D starts verification against golden fixtures and failure-mode cases.

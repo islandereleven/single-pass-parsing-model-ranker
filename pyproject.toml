@@ -6,11 +6,15 @@ authors = ["Islander Eleven"]
 readme = "README.md"
 packages = [{ include = "single_pass_parsing_ranker", from = "src" }]
 
+[tool.poetry.scripts]
+single-pass-ranker = "single_pass_parsing_ranker.cli:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 pandas = "^2.2.0"
 litellm = "^1.74.0"
 pydantic = "^2.0"
+jsonschema = "^4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

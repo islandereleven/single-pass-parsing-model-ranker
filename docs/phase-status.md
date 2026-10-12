@@ -1,8 +1,8 @@
 # Phase Status
 
-Current phase: **Phase C entry**.
+Current phase: **Phase D readiness**.
 
-The project has moved beyond mission concept, requirements capture, and architecture definition. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), and the evaluator architecture is defined in [evaluator-architecture.md](evaluator-architecture.md). Phase C now starts the first runnable evaluator.
+The project has moved beyond mission concept, requirements capture, architecture definition, and the first working prototype. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), the evaluator architecture is defined in [evaluator-architecture.md](evaluator-architecture.md), and the Phase C prototype runs end to end against Gemini.
 
 ## Completed Gates
 
@@ -62,33 +62,43 @@ Completed evidence:
 - Provider/infrastructure failure marks the run failed.
 - Reporting aggregates and compares `run_test_cases` outside the core evaluator.
 
-## Active Work
-
 ### Phase C: Prototype and Build
 
-Status: **ready to start**.
+Status: **complete for current scope**.
 
-Phase C should build the first runnable evaluator over the existing example corpus.
+Phase C built the first runnable evaluator over the existing example corpus.
 
 Phase C exit criteria:
 
-- Package can load cases, run configured models, score outputs, and persist results.
+- Package can load cases, run configured models, score outputs, and emit result rows.
 - Local tests cover scoring and ranking behavior.
 - Example cases demonstrate the workflow.
-- Results can be exported as JSON or Markdown.
+- Results can be exported as raw JSONL through the CLI output mode.
 
-Initial Phase C work:
+Phase C progress:
 
-- Implement prompt assembly.
-- Implement LiteLLM call boundary.
-- Implement response JSON parsing.
-- Implement data-model normalization.
-- Implement exact-match scoring.
-- Implement JSONL persistence for `runs` and `run_test_cases`.
+- Prompt assembly is implemented.
+- Print-backed JSON row emission for `runs` and `run_test_cases` is implemented.
+- LiteLLM structured-output call boundary is implemented.
+- Response JSON parsing is implemented.
+- Shared JSON Schema normalization for output and ground truth is implemented.
+- Field-level exact-match scoring is implemented.
+- Sequential evaluator runner glue is implemented.
+- Local `.env` loading is implemented for provider credentials, while `model_settings` rejects secret-like keys.
+- Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"`.
+- CLI entry point is implemented as `single-pass-ranker run`.
+- Live Gemini smoke test over `corpora/0.1.0.json` completed with a scored result.
 
-## Later Phases
+Deferred hardening:
+
+- File-backed JSONL storage for runs and run test cases.
+- Markdown export for publishable summaries.
+
+## Active Work
 
 ### Phase D: Verification
+
+Status: **ready to start**.
 
 Validate scoring and failure handling against golden fixtures.
 

@@ -32,9 +32,9 @@ The Pydantic-compatible data model is the authority for types, required fields, 
 
 ## Scoring Policy
 
-Default policy: **exact match after normalization**.
+Default policy: **field-level exact match after normalization**.
 
-For the first version, exact match means the normalized model output must equal the normalized ground truth for the fields being scored. Numeric, date, enum, list, and nested object behavior should come from the data-model normalization step before comparison.
+For the first version, scoring flattens the normalized model output and normalized ground truth into field paths, compares each path one-to-one, assigns `1` for an exact match and `0` otherwise, then averages those field scores. Missing or extra fields score `0`. Nested objects and lists are scored by path, such as `line_items[0].total`.
 
 Fuzzy matching is allowed later, but only as an explicit exception. The corpus should eventually be able to mark particular fields as fuzzy-matchable, but fuzzy matching is not the default rule.
 
@@ -93,19 +93,31 @@ Retries can be added later as a separate evaluation track, but the baseline shou
 
 ## Result Record Shape
 
-The evaluator should write a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. The individual result row should capture identity, scoring, reliability, latency, usage, and cost.
+The evaluator should emit a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. The first storage sink prints JSON rows; file-backed JSONL can use the same row shapes later.
 
-Suggested fields:
+The `runs` row owns:
 
 - `run_id`
 - `corpus_id`
-- `test_case_id`
-- `model_provider`
-- `model_name`
-- `run_status`
+- `provider`
+- `model`
+- `model_settings`
+- `model_metadata`
+- `status`
 - `failure_reason`
+- `started_at`
+- `ended_at`
+- `created_at`
+
+The `run_test_cases` row owns:
+
+- `run_id`
+- `test_case_id`
+- `status`
 - `score`
+- `failure_reason`
 - `raw_output`
+- `raw_response_metadata`
 - `parsed_output`
 - `normalized_output`
 - `latency_ms`
@@ -117,6 +129,8 @@ Suggested fields:
 - `input_cost_usd`
 - `output_cost_usd`
 - `reasoning_cost_usd`
+- `started_at`
+- `ended_at`
 - `created_at`
 
 Token and cost fields should be populated from LiteLLM response metadata where available. Missing provider metadata should be recorded as `null`, not guessed silently.

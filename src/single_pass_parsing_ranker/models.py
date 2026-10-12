@@ -95,6 +95,20 @@ class TestCase(StrictModel):
         return value
 
 
+# LLM call results
+
+
+class LLMCallResult(StrictModel):
+    raw_output: str
+    raw_response_metadata: JsonObject = Field(default_factory=dict)
+    latency_ms: int | None = Field(default=None, ge=0)
+    input_tokens: int | None = Field(default=None, ge=0)
+    output_tokens: int | None = Field(default=None, ge=0)
+    reasoning_tokens: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    estimated_cost_usd: float | None = Field(default=None, ge=0.0)
+
+
 # Result rows
 
 

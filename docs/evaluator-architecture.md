@@ -40,8 +40,9 @@ Model settings should use LiteLLM defaults unless explicitly set. The first eval
 
 Initial output storage is intentionally thin:
 
-- print run progress/results to the terminal
-- write local repo tables for `runs` and `run_test_cases`
+- print readable run progress/results to the terminal
+- optionally print raw JSONL rows for `runs` and `run_test_cases`
+- route result rows through a storage boundary for `runs` and `run_test_cases`
 
 Later, those same rows can be copied into the islandereleven.com datalake. The evaluator should not depend on the datalake for the first prototype.
 
@@ -167,29 +168,30 @@ Reporting may choose:
 
 Those policies are outside the core evaluator.
 
-## Proposed Package Boundaries
+## Implemented Package Boundaries
 
 ```text
 models.py        # source and result models, sectioned by usage
 data.py          # normalized source-table loading
-config.py        # evaluator config and corpus selection
 prompts.py       # final call assembly from row prompt, document text, data model
 llm.py           # LiteLLM call boundary and response metadata extraction
-outcomes.py      # scored / zero_score / failed taxonomy
 normalize.py     # Pydantic-compatible data-model normalization
-scoring.py       # exact-match scoring after normalization
-storage.py       # JSONL writing for runs and run_test_cases
+scoring.py       # field-level exact-match scoring after normalization
+storage.py       # print-backed JSON row emission for runs and run_test_cases
+runner.py        # sequential evaluator orchestration
+cli.py           # thin argparse command wrapper
 ```
 
 Design boundaries:
 
 - `models.py` owns the shared source and result record shapes.
 - `data.py` loads normalized source tables and validates references, but does not know about LiteLLM or scoring.
-- `config.py` prepares one run for one provider/model/corpus combination, if needed.
 - `prompts.py` does not call models.
 - `llm.py` does not score outputs.
 - `scoring.py` does not know about provider responses.
-- `storage.py` owns persistence for `runs` and `run_test_cases`.
+- `storage.py` owns result row emission for `runs` and `run_test_cases`; reading is a reporting/resume concern for later.
+- `runner.py` coordinates loading, prompting, calling, normalization, scoring, and result row emission.
+- `cli.py` only maps command-line arguments into `run_evaluation`.
 - Aggregation, ranking, and comparison reporting live outside the core package.
 
 ## Phase B Exit Criteria
