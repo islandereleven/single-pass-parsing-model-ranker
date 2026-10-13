@@ -1,6 +1,12 @@
 """Tools for ranking single-pass document parsing models."""
 
 from single_pass_parsing_ranker.data import load_corpora, load_corpus, load_documents
+from single_pass_parsing_ranker.document_text_resolution import (
+    DocumentTextResolutionError,
+    LayoutTextBlock,
+    ResolvedDocumentText,
+    resolve_document_text,
+)
 from single_pass_parsing_ranker.llm import (
     LLMCallError,
     LLMResponseError,
@@ -15,12 +21,18 @@ from single_pass_parsing_ranker.models import (
     CorpusLoadError,
     DataModelSchema,
     Document,
+    FieldComparison,
+    FieldComparisonMethod,
+    FieldEvaluation,
     FailureReason,
+    LayoutToTextStrategy,
     LLMCallResult,
+    OcrStrategy,
     Run,
     RunStatus,
     RunTestCase,
     TestCase,
+    extraction_schema,
     storage_schemas,
 )
 from single_pass_parsing_ranker.normalize import (
@@ -32,8 +44,21 @@ from single_pass_parsing_ranker.normalize import (
 )
 from single_pass_parsing_ranker.prompts import build_prompt
 from single_pass_parsing_ranker.runner import RunnerError, run_evaluation
-from single_pass_parsing_ranker.scoring import field_scores, flatten_json_value, score_json_values
-from single_pass_parsing_ranker.storage import append_jsonl, append_run, append_run_test_case
+from single_pass_parsing_ranker.scoring import (
+    comparison_method_for_path,
+    field_comparisons,
+    field_scores,
+    flatten_json_value,
+    fuzzy_text_score,
+    score_field_comparisons,
+    score_json_values,
+)
+from single_pass_parsing_ranker.storage import (
+    append_field_comparison,
+    append_jsonl,
+    append_run,
+    append_run_test_case,
+)
 
 __all__ = [
     "AttemptStatus",
@@ -41,12 +66,20 @@ __all__ = [
     "CorpusLoadError",
     "DataModelSchema",
     "Document",
+    "DocumentTextResolutionError",
+    "FieldComparison",
+    "FieldComparisonMethod",
+    "FieldEvaluation",
     "FailureReason",
     "JsonParseError",
+    "LayoutToTextStrategy",
+    "LayoutTextBlock",
     "LLMCallError",
     "LLMCallResult",
     "LLMResponseError",
     "NormalizationError",
+    "OcrStrategy",
+    "ResolvedDocumentText",
     "Run",
     "RunnerError",
     "RunStatus",
@@ -54,21 +87,28 @@ __all__ = [
     "SchemaValidationError",
     "StructuredOutputValidationError",
     "TestCase",
+    "append_field_comparison",
     "append_jsonl",
     "append_run",
     "append_run_test_case",
     "build_prompt",
+    "comparison_method_for_path",
     "extract_litellm_result",
+    "extraction_schema",
+    "field_comparisons",
     "field_scores",
     "flatten_json_value",
+    "fuzzy_text_score",
     "load_corpora",
     "load_corpus",
     "load_documents",
     "normalize_json_value",
     "parse_json_output",
     "request_structured_parse",
+    "resolve_document_text",
     "response_format_for_schema",
     "run_evaluation",
+    "score_field_comparisons",
     "score_json_values",
     "storage_schemas",
 ]

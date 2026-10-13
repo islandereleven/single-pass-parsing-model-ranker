@@ -1,17 +1,24 @@
 from contextlib import redirect_stdout
+from hashlib import sha256
 from io import StringIO
 import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from uuid import UUID
 
 from single_pass_parsing_ranker import (
     AttemptStatus,
+    DocumentTextResolutionError,
+    FieldComparison,
     FailureReason,
+    LayoutToTextStrategy,
     LLMCallError,
     LLMCallResult,
+    OcrStrategy,
+    ResolvedDocumentText,
     Run,
     RunnerError,
     RunStatus,
@@ -23,6 +30,7 @@ from single_pass_parsing_ranker import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
+VERSION_030_CORPUS = PROJECT_ROOT / "corpora" / "0.3.0.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
@@ -76,11 +84,15 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(case_row.total_tokens, 32)
         self.assertEqual(case_row.estimated_cost_usd, 0.0123)
         self.assertEqual(case_row.raw_response_metadata, {"id": "response-001"})
+        acme_text = (PROJECT_ROOT / "documents" / "acme_invoice.txt").read_text(encoding="utf-8")
+        self.assertEqual(case_row.document_text_sha256, sha256(acme_text.encode("utf-8")).hexdigest())
 
         self.assertEqual(run, run_row)
         self.assertEqual(run_row.status, RunStatus.COMPLETED)
         self.assertIsNone(run_row.failure_reason)
         self.assertEqual(run_row.model_settings, {"temperature": 0, "max_tokens": 1024})
+        self.assertEqual(run_row.layout_to_text_strategy, LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT)
+        self.assertEqual(run_row.ocr_strategy, OcrStrategy.PYTESSERACT)
 
         self.assertEqual(calls[0]["model"], "gemini/gemini-2.5-flash")
         self.assertEqual(calls[0]["data_model"], test_case.data_model)
@@ -164,8 +176,67 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("latency: 321ms", text)
         self.assertIn("tokens: 160 (in 100, out 50, reasoning 10)", text)
         self.assertIn("cost: $0.001234", text)
+        self.assertIn("mismatches: 0", text)
         self.assertIn(f"Run completed: {RUN_ID}", text)
         self.assertNotIn("raw_output", text)
+
+    def test_run_evaluation_prints_pretty_mismatches(self) -> None:
+        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        model_output = dict(test_case.ground_truth)
+        model_output["total"] = 999.0
+
+        def fake_request(**kwargs):
+            return LLMCallResult(raw_output=json.dumps(model_output))
+
+        output = StringIO()
+        with redirect_stdout(output):
+            run_evaluation(
+                model="gemini/gemini-2.5-flash",
+                corpus_path=EXAMPLE_CORPUS,
+                run_id=RUN_ID,
+                env_path=None,
+                structured_parse_request=fake_request,
+            )
+
+        text = output.getvalue()
+        self.assertIn("mismatches: 1", text)
+        self.assertIn("    total", text)
+        self.assertIn("expected: 175.5", text)
+        self.assertIn("actual: 999.0", text)
+
+    def test_run_evaluation_prints_jsonl_mismatch_rows(self) -> None:
+        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        model_output = dict(test_case.ground_truth)
+        model_output["total"] = 999.0
+
+        def fake_request(**kwargs):
+            return LLMCallResult(raw_output=json.dumps(model_output))
+
+        output = StringIO()
+        with redirect_stdout(output):
+            run_evaluation(
+                model="gemini/gemini-2.5-flash",
+                corpus_path=EXAMPLE_CORPUS,
+                run_id=RUN_ID,
+                env_path=None,
+                output_format="jsonl",
+                structured_parse_request=fake_request,
+            )
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 3)
+        case_row = RunTestCase.model_validate_json(lines[0])
+        comparison_row = FieldComparison.model_validate_json(lines[1])
+        run_row = Run.model_validate_json(lines[2])
+
+        self.assertEqual(case_row.status, AttemptStatus.SCORED)
+        self.assertLess(case_row.score, 1.0)
+        self.assertEqual(comparison_row.field_path, "total")
+        self.assertEqual(comparison_row.expected_value, 175.5)
+        self.assertEqual(comparison_row.actual_value, 999.0)
+        self.assertFalse(comparison_row.matched)
+        self.assertEqual(comparison_row.score, 0.0)
+        self.assertEqual(run_row.status, RunStatus.COMPLETED)
 
     def test_run_evaluation_records_invalid_json_as_zero_score(self) -> None:
         def fake_request(**kwargs):
@@ -214,6 +285,48 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(run.failure_reason, FailureReason.AUTH_ERROR)
         self.assertEqual(run_row.status, RunStatus.FAILED)
         self.assertEqual(run_row.failure_reason, FailureReason.AUTH_ERROR)
+
+    def test_run_evaluation_fails_case_when_document_text_resolution_fails(self) -> None:
+        rows = load_corpus(VERSION_030_CORPUS)
+        calls = []
+
+        def fake_request(**kwargs):
+            calls.append(kwargs)
+            return LLMCallResult(raw_output=json.dumps(rows[0].ground_truth))
+
+        output = StringIO()
+        with patch(
+            "single_pass_parsing_ranker.runner.resolve_document_text",
+            side_effect=[
+                ResolvedDocumentText(text="ACME Widgets\n", sha256="resolved-text-sha"),
+                DocumentTextResolutionError("no text"),
+            ],
+        ):
+            with redirect_stdout(output):
+                run = run_evaluation(
+                    model="gemini/gemini-2.5-flash",
+                    corpus_path=VERSION_030_CORPUS,
+                    run_id=RUN_ID,
+                    env_path=None,
+                    output_format="jsonl",
+                    structured_parse_request=fake_request,
+                )
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 3)
+        first_case_row = RunTestCase.model_validate_json(lines[0])
+        failed_case_row = RunTestCase.model_validate_json(lines[1])
+        run_row = Run.model_validate_json(lines[2])
+
+        self.assertEqual(first_case_row.status, AttemptStatus.SCORED)
+        self.assertIsNotNone(first_case_row.document_text_sha256)
+        self.assertEqual(failed_case_row.status, AttemptStatus.FAILED)
+        self.assertEqual(failed_case_row.failure_reason, FailureReason.DOCUMENT_TEXT_EXTRACTION_ERROR)
+        self.assertIsNone(failed_case_row.document_text_sha256)
+        self.assertEqual(run.status, RunStatus.FAILED)
+        self.assertEqual(run.failure_reason, FailureReason.DOCUMENT_TEXT_EXTRACTION_ERROR)
+        self.assertEqual(run_row.failure_reason, FailureReason.DOCUMENT_TEXT_EXTRACTION_ERROR)
+        self.assertEqual(len(calls), 1)
 
 
 if __name__ == "__main__":

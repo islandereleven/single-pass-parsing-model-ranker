@@ -1,0 +1,303 @@
+[
+  {
+    "corpus_id": "e714c86b-f654-5357-823c-cb51fe8602af",
+    "test_case_id": "5c9c0d9b-a412-4f0a-9cc6-fdb164b2c1f5",
+    "document_id": "2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9",
+    "data_model": {
+      "title": "Invoice",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supplier_name",
+        "invoice_number",
+        "invoice_date",
+        "due_date",
+        "bill_to",
+        "currency",
+        "subtotal",
+        "tax",
+        "total",
+        "payment_terms",
+        "line_items"
+      ],
+      "properties": {
+        "supplier_name": {
+          "type": "string"
+        },
+        "invoice_number": {
+          "type": "string"
+        },
+        "invoice_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "bill_to": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "tax": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "payment_terms": {
+          "type": "string"
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "unit_price",
+              "total"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unit_price": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the document text. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Do not include explanations, markdown, comments, or extra keys. If a value is not present in the document, use null only when the data model allows null; otherwise leave the field in the best valid form supported by the document and data model.",
+    "ground_truth": {
+      "supplier_name": "ACME Widgets",
+      "invoice_number": "INV-0001",
+      "invoice_date": "2026-10-01",
+      "due_date": "2026-10-31",
+      "bill_to": "Islander Eleven LLC",
+      "currency": "USD",
+      "subtotal": 162.5,
+      "tax": 13.0,
+      "total": 175.5,
+      "payment_terms": "Net 30",
+      "line_items": [
+        {
+          "description": "Stainless bolt kit",
+          "quantity": 3,
+          "unit_price": 12.5,
+          "total": 37.5
+        },
+        {
+          "description": "Calibration service",
+          "quantity": 1,
+          "unit_price": 125.0,
+          "total": 125.0
+        }
+      ]
+    }
+  },
+  {
+    "corpus_id": "e714c86b-f654-5357-823c-cb51fe8602af",
+    "test_case_id": "9b811282-305e-4440-9bd9-711a1a49017f",
+    "document_id": "9c924967-7894-48ca-a488-fb786d0d7be1",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "3043 Peters Lights Suite 433\nGreerton, NV 21983",
+        "client_name": "Salinas Ltd",
+        "due_date": "",
+        "invoice_date": "05/20/2013",
+        "invoice_number": "86736203",
+        "seller_address": "5907 Donna Club\nRobinsonside, DC 18710",
+        "seller_name": "Potter-Gordon"
+      },
+      "items": [
+        {
+          "description": "Cartoon Rabbit Printed Round Carpet Area Rug Children Play Tent Floor Mat Rug",
+          "quantity": 2.0,
+          "total_price": 389.58
+        },
+        {
+          "description": "Muted Vegetable Dye Khootan Oriental Area Rug Hand-knotted Floral 8'x11' Carpet",
+          "quantity": 4.0,
+          "total_price": 8868.82
+        },
+        {
+          "description": "Abstract Living Room Carpet Home Decor Nordic Style Bedside Area Rug Floor Mats",
+          "quantity": 5.0,
+          "total_price": 132.06
+        },
+        {
+          "description": "Yilong 8x10ft Hand knotted Wool Carpets Home Decor Modern Villa Area Rug P39",
+          "quantity": 1.0,
+          "total_price": 5544.0
+        },
+        {
+          "description": "Romantic Rose Flowers Area Rugs Kitchen Living Room Floor Mat Non-slip Carpets",
+          "quantity": 1.0,
+          "total_price": 14.71
+        },
+        {
+          "description": "World Map Round Carpets Room Printed Area Rug Blue Floor Mat Bedroom Play Mat",
+          "quantity": 5.0,
+          "total_price": 460.79
+        },
+        {
+          "description": "Xmas Christmas Rug Carpet Cartoon Bedroom Kids Play Mat Soft Flannel Area Rugs @",
+          "quantity": 4.0,
+          "total_price": 164.16
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "GB04NPPR85049860720734",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 1415.83,
+        "total": 15574.11
+      }
+    }
+  }
+]

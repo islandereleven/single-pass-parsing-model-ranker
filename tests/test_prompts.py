@@ -47,6 +47,25 @@ Total: 175.50""",
                 data_model={"type": "object"},
             )
 
+    def test_build_prompt_strips_evaluation_metadata_from_schema(self) -> None:
+        prompt = build_prompt(
+            instruction="Extract.",
+            document_text="Invoice text",
+            data_model={
+                "type": "object",
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "evaluation": {"comparison": "fuzzy_text"},
+                    }
+                },
+            },
+        )
+
+        self.assertIn('"address"', prompt)
+        self.assertNotIn("evaluation", prompt)
+        self.assertNotIn("fuzzy_text", prompt)
+
     def test_build_prompt_rejects_blank_document_text(self) -> None:
         with self.assertRaises(ValueError):
             build_prompt(

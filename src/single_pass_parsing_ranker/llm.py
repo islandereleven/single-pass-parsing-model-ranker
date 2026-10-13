@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from single_pass_parsing_ranker.models import DataModelSchema, JsonObject, LLMCallResult
+from single_pass_parsing_ranker.models import JsonObject, LLMCallResult, extraction_schema
 
 
 class LLMCallError(RuntimeError):
@@ -54,7 +54,7 @@ def request_structured_parse(
 
 
 def response_format_for_schema(data_model: JsonObject) -> JsonObject:
-    schema = DataModelSchema(data_model).as_dict()
+    schema = extraction_schema(data_model)
     return {
         "type": "json_schema",
         "json_schema": {

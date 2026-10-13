@@ -29,9 +29,9 @@ The system should answer:
 
 ## Systems Design Lifecycle
 
-Current phase: **Phase E readiness**.
+Current phase: **Phase E operations**.
 
-The mission concept, Phase A requirements, Phase B architecture, Phase C prototype, and Phase D core verification are set. The next work is Phase E: running batches and preparing publishable rankings. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
+The mission concept, Phase A requirements, Phase B architecture, Phase C prototype, and Phase D core verification are set. The current work is Phase E: larger corpora, batch readiness, and operational plumbing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
 ### Pre-Phase A: Mission Concept
 
@@ -126,10 +126,13 @@ single-pass-parsing-model-ranker/
 │   └── phase-status.md
 ├── documents/
 │   ├── acme_invoice.txt
-│   └── documents.json
+│   ├── documents.json
+│   └── invoice-batch-1-sample-20-v0.1/
 ├── corpora/
-│   ├── corpora.json
-│   └── 0.1.0.json
+│   ├── 0.1.0.json
+│   ├── 0.2.0.json
+│   ├── 0.3.0.json
+│   └── corpora.json
 ├── src/
 │   └── single_pass_parsing_ranker/
 │       ├── __init__.py
@@ -153,9 +156,9 @@ single-pass-parsing-model-ranker/
 - **Document registry:** a flat list of source documents, addressed by stable UUIDs and protected by checksums.
 - **Corpus table:** a flat list of corpus UUIDs and versions.
 - **TestCase:** one corpus row with `corpus_id`, `test_case_id`, `document_id`, `data_model`, `prompt`, and `ground_truth`.
-- **Run:** one model/corpus evaluation, including provider settings, status, and reproducibility metadata.
+- **Run:** one model/corpus evaluation, including provider settings, document text strategy, status, and reproducibility metadata.
 - **ParseAttempt:** one model's single-pass output for one document case.
-- **AccuracyScore:** field-level comparison between expected JSON and model JSON.
+- **FieldComparison:** field-level comparison between expected JSON and model JSON, using exact matching by default and schema-owned fuzzy text comparison where the corpus opts in.
 - **RunTestCase:** one model call and result for one corpus test case inside a run.
 
 ## Data Contract
@@ -173,15 +176,19 @@ Each `TestCase` row has this shape:
 
 The fixed document registry is checksum-protected so source document drift is caught before evaluation. Test cases reference corpora and documents by id, while the data model stays inside the corpus row.
 
-The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, field-level exact match is the default scoring policy, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
+The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, field-level exact match is the default scoring policy, schema-owned fuzzy text comparison can opt in noisy text fields, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
 
 Implemented contract pieces:
 
 - `documents/documents.json` is a flat list of fixed source documents, paths, and checksums.
 - `corpora/corpora.json` is a flat corpus table.
 - `corpora/0.1.0.json` is a flat test-case table with inline data models.
+- `corpora/0.2.0.json` is a 21-row corpus: the existing ACME text case plus 20 source-image invoice cases.
+- `corpora/0.3.0.json` is a 2-row mini corpus for resolver smoke checks: ACME text plus one source-image invoice case.
+- `documents/invoice-batch-1-sample-20-v0.1/` keeps the 20 source `.jpg` invoice images.
 - `src/single_pass_parsing_ranker/data.py` loads the normalized tables, validates references, checks registry links, and detects document SHA-256 drift.
-- `src/single_pass_parsing_ranker/models.py` defines `Corpus`, `Document`, `TestCase`, run row, run-test-case row, status enums, failure taxonomy, and storage schemas.
+- `src/single_pass_parsing_ranker/models.py` defines `Corpus`, `Document`, `TestCase`, run row, run-test-case row, layout/OCR strategy enums, status enums, failure taxonomy, and storage schemas.
+- `src/single_pass_parsing_ranker/document_text_resolution.py` resolves fixed documents into model-ready text and hashes the exact text sent to the prompt.
 - `tests/test_corpus.py` covers the example corpus, document reading, data-model validation, checksum drift, and unknown document references.
 - `tests/test_models.py` covers the run/result storage models and generated storage schemas.
 
@@ -191,7 +198,7 @@ Phase C is complete for the current scope. Pieces now in place:
 - Readable terminal output plus raw JSONL row emission for `runs` and `run_test_cases`.
 - LiteLLM structured-output call wrapper.
 - Response JSON parsing plus shared JSON Schema normalization for output and ground truth.
-- Field-level exact-match scoring.
+- Field-level exact-match scoring with opt-in fuzzy text comparison.
 - Sequential evaluator runner glue.
 - CLI entry point.
 - Live Gemini smoke test over `corpora/0.1.0.json`.
@@ -200,6 +207,8 @@ Deferred hardening:
 
 - File-backed JSONL storage for runs and run test cases.
 - Markdown export for publishable summaries.
+
+The current runner resolves documents into model-ready UTF-8 text. Plain `.txt` files pass through unchanged, PDFs use native text extraction first with OCR fallback, and image files use PyTesseract OCR.
 
 ## Local Credentials
 
@@ -223,6 +232,8 @@ poetry run single-pass-ranker run \
   --temperature 0
 ```
 
+The runner defaults to `--layout-to-text-strategy native_layout_to_text` and `--ocr-strategy pytesseract`. PyTesseract requires the `tesseract` system binary to be installed locally.
+
 Print raw JSON rows instead:
 
 ```bash
@@ -244,6 +255,12 @@ poetry install
 
 Run `poetry install` again after script entry-point changes so `poetry run single-pass-ranker` is installed cleanly.
 
+Install the local OCR binary for image/scanned-PDF document resolution:
+
+```bash
+brew install tesseract
+```
+
 Run tests:
 
 ```bash
@@ -256,4 +273,4 @@ Phase D verification details live in [docs/phase-d-verification.md](docs/phase-d
 
 Pre-Phase A, Phase A, and Phase B are complete for the current scope: the corpus/document contract, evaluation semantics, and evaluator architecture are documented and represented in code.
 
-Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Phase D verified the core scoring, metadata, CLI, and failure-mode behavior. Aggregation, model comparisons, batch execution, and publishable outputs are Phase E concerns.
+Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Phase D verified the core scoring, metadata, CLI, and failure-mode behavior. Phase E has added larger corpora plus OCR/native document text resolution; storage, batch operations, and model-native multimodal handling are next.

@@ -5,8 +5,10 @@ from uuid import UUID
 
 from single_pass_parsing_ranker import (
     AttemptStatus,
+    FieldComparison,
     Run,
     RunTestCase,
+    append_field_comparison,
     append_run,
     append_run_test_case,
 )
@@ -68,6 +70,29 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertEqual(RunTestCase.model_validate_json(lines[0]).status, AttemptStatus.SCORED)
         self.assertEqual(RunTestCase.model_validate_json(lines[1]).status, AttemptStatus.ZERO_SCORE)
+
+    def test_append_field_comparison_prints_json_row(self) -> None:
+        output = StringIO()
+
+        with redirect_stdout(output):
+            append_field_comparison(
+                "runs/field_comparisons.jsonl",
+                FieldComparison(
+                    run_id=RUN_ID,
+                    test_case_id=TEST_CASE_ID,
+                    field_path="total",
+                    expected_value=123.45,
+                    actual_value=120.0,
+                    matched=False,
+                    score=0.0,
+                ),
+            )
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        restored = FieldComparison.model_validate_json(lines[0])
+        self.assertEqual(restored.field_path, "total")
+        self.assertFalse(restored.matched)
 
 
 if __name__ == "__main__":

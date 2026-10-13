@@ -20,12 +20,13 @@ All `*_id` fields are UUID strings on disk and UUID values in code.
 1. Load or create one run.
 2. Resolve exactly one provider/model/settings set for this run.
 3. Resolve exactly one corpus id for the run.
-4. Create one `runs` row.
-5. Load the corpus and fixed document registry.
-6. Create or schedule one `run_test_cases` row per test case.
-7. Execute test cases sequentially at first, with a path to parallel execution later.
-8. Write each test case result to `run_test_cases`.
-9. Update the `runs` row with final run status.
+4. Resolve one layout-to-text strategy and one OCR strategy for this run.
+5. Create one `runs` row.
+6. Load the corpus and fixed document registry.
+7. Create or schedule one `run_test_cases` row per test case.
+8. Execute test cases sequentially at first, with a path to parallel execution later.
+9. Write each test case result to `run_test_cases`.
+10. Update the `runs` row with final run status.
 
 ## `runs`
 
@@ -35,6 +36,8 @@ Minimum fields:
 
 - provider/model identifier in the form LiteLLM expects
 - corpus id
+- layout-to-text strategy
+- OCR strategy
 
 Model settings should use LiteLLM defaults unless explicitly set. The first evaluator does not need a separate model registry or candidate abstraction.
 
@@ -54,6 +57,8 @@ Suggested fields:
 - provider
 - model
 - model settings, such as temperature, timeout, and token limits
+- layout-to-text strategy
+- OCR strategy
 - `corpus_id`
 - model/provider metadata
 - run status
@@ -80,6 +85,7 @@ Each row records one model call for one `TestCase` row:
 - raw LLM response
 - parsed output, when available
 - normalized output, when available
+- resolved document text SHA-256, when available
 - score
 - attempt status: `scored`, `zero_score`, or `failed`
 - failure reason, when applicable
@@ -107,23 +113,32 @@ Reporting can derive all aggregates from this table:
 
 For each test case:
 
-1. Read the fixed document text.
+1. Resolve the fixed source document into model-ready text.
 2. Build the final model call from:
    - row-level `prompt`
-   - document text
+   - resolved document text
    - row-level `data_model`
-3. Make exactly one LiteLLM call.
-4. If the provider call fails, write a failed `run_test_cases` row and set the run to `failed`.
-5. If the provider call succeeds:
+3. Hash the resolved document text and store that hash on the result row.
+4. Make exactly one LiteLLM call.
+5. If document text resolution or the provider call fails, write a failed `run_test_cases` row and set the run to `failed`.
+6. If the provider call succeeds:
    - Parse the returned content as JSON.
    - Normalize the parsed output through the row data model.
    - Normalize the ground truth through the row data model.
-   - Compare normalized output to normalized ground truth.
+   - Compare normalized output to normalized ground truth with the row schema's field-level evaluation metadata.
    - Write the `run_test_cases` row.
 
-Sequential execution can stop scheduling more test cases after a provider/infrastructure failure and mark the run failed.
+Sequential execution can stop scheduling more test cases after a document-resolution or provider/infrastructure failure and mark the run failed.
 
-Parallel execution can schedule test cases independently. If one provider/infrastructure failure occurs, the run is still marked failed, but completed test case rows remain useful for debugging and reporting.
+Parallel execution can schedule test cases independently. If one document-resolution or provider/infrastructure failure occurs, the run is still marked failed, but completed test case rows remain useful for debugging and reporting.
+
+## Document Text Resolution
+
+Document text resolution is a run-level experiment variable.
+
+The first strategy is `native_layout_to_text`. It passes `.txt` files through unchanged, extracts native PDF text with layout where available, falls back to OCR for scanned PDFs, and OCRs image inputs with PyTesseract. Every successful path records the SHA-256 of the exact text sent into the prompt.
+
+The run also records `ocr_strategy`. The first enum value is `pytesseract`.
 
 ## Prompt Assembly
 
@@ -173,10 +188,11 @@ Those policies are outside the core evaluator.
 ```text
 models.py        # source and result models, sectioned by usage
 data.py          # normalized source-table loading
+document_text_resolution.py # document-to-model-text resolution
 prompts.py       # final call assembly from row prompt, document text, data model
 llm.py           # LiteLLM call boundary and response metadata extraction
 normalize.py     # Pydantic-compatible data-model normalization
-scoring.py       # field-level exact-match scoring after normalization
+scoring.py       # field-level comparison scoring after normalization
 storage.py       # print-backed JSON row emission for runs and run_test_cases
 runner.py        # sequential evaluator orchestration
 cli.py           # thin argparse command wrapper

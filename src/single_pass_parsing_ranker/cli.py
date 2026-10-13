@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from single_pass_parsing_ranker import run_evaluation
+from single_pass_parsing_ranker import LayoutToTextStrategy, OcrStrategy, run_evaluation
 from single_pass_parsing_ranker.runner import OutputFormat
 
 
@@ -18,6 +18,18 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser.add_argument("--provider", help="Provider label stored on the run row.")
     run_parser.add_argument("--corpus", required=True, help="Path to the corpus test-case table.")
     run_parser.add_argument("--temperature", type=float, help="Optional model temperature.")
+    run_parser.add_argument(
+        "--layout-to-text-strategy",
+        choices=tuple(item.value for item in LayoutToTextStrategy),
+        default=LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT.value,
+        help="Document-to-text strategy stored on the run row.",
+    )
+    run_parser.add_argument(
+        "--ocr-strategy",
+        choices=tuple(item.value for item in OcrStrategy),
+        default=OcrStrategy.PYTESSERACT.value,
+        help="OCR strategy stored on the run row.",
+    )
     run_parser.add_argument(
         "--output-format",
         choices=("pretty", "jsonl"),
@@ -33,6 +45,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             provider=args.provider,
             corpus_path=args.corpus,
             model_settings=_model_settings(args),
+            layout_to_text_strategy=args.layout_to_text_strategy,
+            ocr_strategy=args.ocr_strategy,
             output_format=args.output_format,
         )
 

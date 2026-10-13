@@ -7,7 +7,7 @@ from json import JSONDecodeError
 
 from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
-from single_pass_parsing_ranker.models import DataModelSchema, JsonObject, JsonValue
+from single_pass_parsing_ranker.models import JsonObject, JsonValue, extraction_schema
 
 
 class NormalizationError(ValueError):
@@ -32,7 +32,7 @@ def parse_json_output(raw_output: str) -> JsonValue:
 
 
 def normalize_json_value(value: JsonValue, data_model: JsonObject) -> JsonValue:
-    schema = DataModelSchema(data_model).as_dict()
+    schema = extraction_schema(data_model)
     try:
         Draft202012Validator.check_schema(schema)
         Draft202012Validator(schema).validate(value)

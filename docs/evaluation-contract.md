@@ -17,7 +17,7 @@ Each attempt is tied to one `TestCase` row:
 
 All `*_id` fields are UUID strings on disk and UUID values in code.
 
-The evaluator resolves `document_id` through the document table. It sends the row-level prompt, fixed document text, and inline data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus row and normalized through a Pydantic-compatible model in the evaluator.
+The evaluator resolves `document_id` through the document table. It then resolves the source document into model-ready text using the run's layout-to-text strategy and OCR strategy. Plain text documents pass through unchanged, PDFs use native layout text extraction first with OCR fallback, and image documents use OCR. The evaluator sends the row-level prompt, resolved document text, and inline data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus row and normalized through a Pydantic-compatible model in the evaluator.
 
 ## Normalization Policy
 
@@ -34,9 +34,20 @@ The Pydantic-compatible data model is the authority for types, required fields, 
 
 Default policy: **field-level exact match after normalization**.
 
-For the first version, scoring flattens the normalized model output and normalized ground truth into field paths, compares each path one-to-one, assigns `1` for an exact match and `0` otherwise, then averages those field scores. Missing or extra fields score `0`. Nested objects and lists are scored by path, such as `line_items[0].total`.
+Scoring flattens the normalized model output and normalized ground truth into field paths, compares each path one-to-one, and averages those field scores. Missing or extra fields score `0`. Nested objects and lists are scored by path, such as `line_items[0].total`.
 
-Fuzzy matching is allowed later, but only as an explicit exception. The corpus should eventually be able to mark particular fields as fuzzy-matchable, but fuzzy matching is not the default rule.
+Exact comparison assigns `1` for an exact match and `0` otherwise. A field schema may opt into a different comparison with evaluator-owned metadata:
+
+```json
+{
+  "type": "string",
+  "evaluation": {
+    "comparison": "fuzzy_text"
+  }
+}
+```
+
+`fuzzy_text` compares normalized strings and returns a continuous score from `0` to `1`. The `evaluation` metadata belongs to corpus scoring; it is stripped from provider-facing JSON Schema before prompt assembly, structured-output calls, and schema validation. Identifiers, dates, and numeric fields should stay exact unless a corpus explicitly says otherwise.
 
 ## Outcome Taxonomy
 
@@ -82,6 +93,7 @@ Examples:
 - Authentication or configuration error.
 - Network failure.
 - No provider response.
+- Document text extraction failure before the model call.
 
 The score is `null`. Failed runs are reported separately as reliability data and do not become zero-score parsing attempts.
 
@@ -103,6 +115,8 @@ The `runs` row owns:
 - `model`
 - `model_settings`
 - `model_metadata`
+- `layout_to_text_strategy`
+- `ocr_strategy`
 - `status`
 - `failure_reason`
 - `started_at`
@@ -120,6 +134,7 @@ The `run_test_cases` row owns:
 - `raw_response_metadata`
 - `parsed_output`
 - `normalized_output`
+- `document_text_sha256`
 - `latency_ms`
 - `input_tokens`
 - `output_tokens`

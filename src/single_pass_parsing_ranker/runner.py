@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
 import os
@@ -11,6 +12,10 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from single_pass_parsing_ranker.data import load_corpus, load_documents
+from single_pass_parsing_ranker.document_text_resolution import (
+    DocumentTextResolutionError,
+    resolve_document_text,
+)
 from single_pass_parsing_ranker.llm import (
     LLMCallError,
     LLMResponseError,
@@ -19,9 +24,13 @@ from single_pass_parsing_ranker.llm import (
 )
 from single_pass_parsing_ranker.models import (
     AttemptStatus,
+    Document,
+    FieldComparison,
     FailureReason,
     JsonObject,
+    LayoutToTextStrategy,
     LLMCallResult,
+    OcrStrategy,
     Run,
     RunStatus,
     RunTestCase,
@@ -34,8 +43,11 @@ from single_pass_parsing_ranker.normalize import (
     parse_json_output,
 )
 from single_pass_parsing_ranker.prompts import build_prompt
-from single_pass_parsing_ranker.scoring import score_json_values
-from single_pass_parsing_ranker.storage import append_run, append_run_test_case
+from single_pass_parsing_ranker.scoring import (
+    field_comparisons,
+    score_field_comparisons,
+)
+from single_pass_parsing_ranker.storage import append_field_comparison, append_run, append_run_test_case
 
 
 class RunnerError(RuntimeError):
@@ -61,14 +73,23 @@ _SECRET_SETTING_KEYS = {
 }
 
 
+@dataclass(frozen=True)
+class _RunTestCaseResult:
+    row: RunTestCase
+    field_comparisons: tuple[FieldComparison, ...] = ()
+
+
 def run_evaluation(
     *,
     model: str,
     corpus_path: str | Path,
     runs_path: str | Path = "runs/runs.jsonl",
     run_test_cases_path: str | Path = "runs/run_test_cases.jsonl",
+    field_comparisons_path: str | Path = "runs/field_comparisons.jsonl",
     provider: str | None = None,
     model_settings: JsonObject | None = None,
+    layout_to_text_strategy: LayoutToTextStrategy | str = LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT,
+    ocr_strategy: OcrStrategy | str = OcrStrategy.PYTESSERACT,
     run_id: UUID | None = None,
     corpus_table_path: str | Path | None = None,
     document_registry_path: str | Path | None = None,
@@ -98,23 +119,33 @@ def run_evaluation(
         provider=provider,
         corpus_id=corpus_id,
         model_settings=settings,
+        layout_to_text_strategy=layout_to_text_strategy,
+        ocr_strategy=ocr_strategy,
     )
     _emit_run_start(run, output_format)
 
     run_status = RunStatus.COMPLETED
     run_failure_reason: FailureReason | None = None
     for index, test_case in enumerate(rows, start=1):
-        row = _run_test_case(
+        result = _run_test_case(
             run=run,
             test_case=test_case,
-            document_text=documents[test_case.document_id].path.read_text(encoding="utf-8"),
+            document=documents[test_case.document_id],
             request_structured_parse=structured_parse_request,
         )
-        _emit_run_test_case(run_test_cases_path, row, output_format, index=index, total=len(rows))
+        _emit_run_test_case(
+            run_test_cases_path,
+            field_comparisons_path,
+            result.row,
+            result.field_comparisons,
+            output_format,
+            index=index,
+            total=len(rows),
+        )
 
-        if row.status == AttemptStatus.FAILED:
+        if result.row.status == AttemptStatus.FAILED:
             run_status = RunStatus.FAILED
-            run_failure_reason = row.failure_reason
+            run_failure_reason = result.row.failure_reason
             break
 
     final_run = run.model_copy(
@@ -132,10 +163,27 @@ def _run_test_case(
     *,
     run: Run,
     test_case: TestCase,
-    document_text: str,
+    document: Document,
     request_structured_parse: Callable[..., LLMCallResult],
-) -> RunTestCase:
+) -> _RunTestCaseResult:
     started_at = _utc_now()
+    try:
+        resolved_document_text = resolve_document_text(
+            document,
+            layout_to_text_strategy=run.layout_to_text_strategy,
+            ocr_strategy=run.ocr_strategy,
+        )
+    except DocumentTextResolutionError:
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                status=AttemptStatus.FAILED,
+                failure_reason=FailureReason.DOCUMENT_TEXT_EXTRACTION_ERROR,
+                started_at=started_at,
+            )
+        )
+
     try:
         normalized_ground_truth = normalize_json_value(test_case.ground_truth, test_case.data_model)
     except SchemaValidationError as exc:
@@ -143,7 +191,7 @@ def _run_test_case(
 
     prompt = build_prompt(
         instruction=test_case.prompt,
-        document_text=document_text,
+        document_text=resolved_document_text.text,
         data_model=test_case.data_model,
     )
 
@@ -155,68 +203,94 @@ def _run_test_case(
             model_settings=run.model_settings,
         )
     except StructuredOutputValidationError:
-        return _result_row(
-            run=run,
-            test_case=test_case,
-            status=AttemptStatus.ZERO_SCORE,
-            score=0.0,
-            failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
-            started_at=started_at,
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                status=AttemptStatus.ZERO_SCORE,
+                score=0.0,
+                failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
+                document_text_sha256=resolved_document_text.sha256,
+                started_at=started_at,
+            )
         )
     except LLMResponseError:
-        return _result_row(
-            run=run,
-            test_case=test_case,
-            status=AttemptStatus.FAILED,
-            failure_reason=FailureReason.NO_RESPONSE,
-            started_at=started_at,
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                status=AttemptStatus.FAILED,
+                failure_reason=FailureReason.NO_RESPONSE,
+                document_text_sha256=resolved_document_text.sha256,
+                started_at=started_at,
+            )
         )
     except LLMCallError as exc:
-        return _result_row(
-            run=run,
-            test_case=test_case,
-            status=AttemptStatus.FAILED,
-            failure_reason=_failure_reason_for_llm_error(exc),
-            started_at=started_at,
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                status=AttemptStatus.FAILED,
+                failure_reason=_failure_reason_for_llm_error(exc),
+                document_text_sha256=resolved_document_text.sha256,
+                started_at=started_at,
+            )
         )
 
     try:
         parsed_output = parse_json_output(llm_result.raw_output)
     except JsonParseError:
         reason = FailureReason.EMPTY_RESPONSE if not llm_result.raw_output.strip() else FailureReason.INVALID_JSON
-        return _result_row(
-            run=run,
-            test_case=test_case,
-            llm_result=llm_result,
-            status=AttemptStatus.ZERO_SCORE,
-            score=0.0,
-            failure_reason=reason,
-            started_at=started_at,
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                llm_result=llm_result,
+                status=AttemptStatus.ZERO_SCORE,
+                score=0.0,
+                failure_reason=reason,
+                document_text_sha256=resolved_document_text.sha256,
+                started_at=started_at,
+            )
         )
 
     try:
         normalized_output = normalize_json_value(parsed_output, test_case.data_model)
     except SchemaValidationError:
-        return _result_row(
+        return _RunTestCaseResult(
+            _result_row(
+                run=run,
+                test_case=test_case,
+                llm_result=llm_result,
+                status=AttemptStatus.ZERO_SCORE,
+                score=0.0,
+                failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
+                parsed_output=parsed_output,
+                document_text_sha256=resolved_document_text.sha256,
+                started_at=started_at,
+            )
+        )
+
+    comparisons = field_comparisons(
+        run_id=run.run_id,
+        test_case_id=test_case.test_case_id,
+        output=normalized_output,
+        ground_truth=normalized_ground_truth,
+        data_model=test_case.data_model,
+    )
+    return _RunTestCaseResult(
+        _result_row(
             run=run,
             test_case=test_case,
             llm_result=llm_result,
-            status=AttemptStatus.ZERO_SCORE,
-            score=0.0,
-            failure_reason=FailureReason.SCHEMA_VALIDATION_ERROR,
+            status=AttemptStatus.SCORED,
+            score=score_field_comparisons(comparisons),
             parsed_output=parsed_output,
+            normalized_output=normalized_output,
+            document_text_sha256=resolved_document_text.sha256,
             started_at=started_at,
-        )
-
-    return _result_row(
-        run=run,
-        test_case=test_case,
-        llm_result=llm_result,
-        status=AttemptStatus.SCORED,
-        score=score_json_values(normalized_output, normalized_ground_truth),
-        parsed_output=parsed_output,
-        normalized_output=normalized_output,
-        started_at=started_at,
+        ),
+        comparisons,
     )
 
 
@@ -231,6 +305,7 @@ def _result_row(
     failure_reason: FailureReason | None = None,
     parsed_output: Any = None,
     normalized_output: Any = None,
+    document_text_sha256: str | None = None,
 ) -> RunTestCase:
     return RunTestCase(
         run_id=run.run_id,
@@ -242,6 +317,7 @@ def _result_row(
         raw_response_metadata=llm_result.raw_response_metadata if llm_result else {},
         parsed_output=parsed_output,
         normalized_output=normalized_output,
+        document_text_sha256=document_text_sha256,
         latency_ms=llm_result.latency_ms if llm_result else None,
         input_tokens=llm_result.input_tokens if llm_result else None,
         output_tokens=llm_result.output_tokens if llm_result else None,
@@ -284,21 +360,28 @@ def _emit_run_start(run: Run, output_format: OutputFormat) -> None:
     if run.provider:
         print(f"  provider: {run.provider}")
     print(f"  corpus: {run.corpus_id}")
+    print(f"  layout_to_text_strategy: {run.layout_to_text_strategy.value}")
+    print(f"  ocr_strategy: {run.ocr_strategy.value}")
     if run.model_settings:
         settings = json.dumps(run.model_settings, sort_keys=True)
         print(f"  settings: {settings}")
 
 
 def _emit_run_test_case(
-    path: str | Path,
+    run_test_cases_path: str | Path,
+    field_comparisons_path: str | Path,
     row: RunTestCase,
+    comparisons: tuple[FieldComparison, ...],
     output_format: OutputFormat,
     *,
     index: int,
     total: int,
 ) -> None:
+    mismatches = tuple(comparison for comparison in comparisons if not comparison.matched)
     if output_format == "jsonl":
-        append_run_test_case(path, row)
+        append_run_test_case(run_test_cases_path, row)
+        for mismatch in mismatches:
+            append_field_comparison(field_comparisons_path, mismatch)
         return
 
     print("")
@@ -310,6 +393,14 @@ def _emit_run_test_case(
     print(f"  latency: {_format_ms(row.latency_ms)}")
     print(f"  tokens: {_format_tokens(row)}")
     print(f"  cost: {_format_money(row.estimated_cost_usd)}")
+    if row.status == AttemptStatus.SCORED:
+        print(f"  mismatches: {len(mismatches)}")
+        for mismatch in mismatches:
+            print(f"    {mismatch.field_path}")
+            print(f"      comparison: {mismatch.comparison_method.value}")
+            print(f"      comparison_score: {_format_score(mismatch.score)}")
+            print(f"      expected: {_format_json_value(mismatch.expected_value, mismatch.expected_present)}")
+            print(f"      actual: {_format_json_value(mismatch.actual_value, mismatch.actual_present)}")
 
 
 def _emit_run(path: str | Path, run: Run, output_format: OutputFormat) -> None:
@@ -359,6 +450,12 @@ def _format_tokens(row: RunTestCase) -> str:
     if details:
         parts.append(f"({', '.join(details)})")
     return " ".join(parts)
+
+
+def _format_json_value(value: Any, present: bool) -> str:
+    if not present:
+        return "<missing>"
+    return json.dumps(value, sort_keys=True)
 
 
 def _load_env_file(env_path: str | Path | None) -> None:

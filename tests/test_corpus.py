@@ -33,7 +33,7 @@ class TestCaseLoadingTests(unittest.TestCase):
         raw_documents = json.loads((EXAMPLE_DOCUMENTS / "documents.json").read_text(encoding="utf-8"))
 
         self.assertEqual(tuple(row.test_case_id for row in rows), (TEST_CASE_ID,))
-        self.assertEqual(tuple(corpora), (CORPUS_ID,))
+        self.assertIn(CORPUS_ID, corpora)
         self.assertIsInstance(raw_corpus, list)
         self.assertEqual(raw_corpus[0]["corpus_id"], str(CORPUS_ID))
         self.assertEqual(raw_corpus[0]["test_case_id"], str(TEST_CASE_ID))

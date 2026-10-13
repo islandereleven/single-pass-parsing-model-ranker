@@ -35,6 +35,23 @@ class NormalizeTests(unittest.TestCase):
 
         self.assertEqual(normalize_json_value(value, INVOICE_SCHEMA), value)
 
+    def test_normalize_json_value_ignores_evaluation_metadata(self) -> None:
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["address"],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "evaluation": {"comparison": "fuzzy_text"},
+                }
+            },
+        }
+
+        value = {"address": "3043 Peters Lights Suite 433"}
+
+        self.assertEqual(normalize_json_value(value, schema), value)
+
     def test_normalize_json_value_rejects_schema_mismatch(self) -> None:
         with self.assertRaises(SchemaValidationError):
             normalize_json_value({"vendor": "Acme Corp", "total": "123.45"}, INVOICE_SCHEMA)

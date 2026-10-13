@@ -133,6 +133,26 @@ class LLMTests(unittest.TestCase):
         self.assertTrue(calls[0]["enable_json_schema_validation"])
         self.assertEqual(calls[0]["temperature"], 0)
 
+    def test_response_format_strips_evaluation_metadata(self) -> None:
+        schema = {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "evaluation": {"comparison": "fuzzy_text"},
+                }
+            },
+        }
+
+        response_format = response_format_for_schema(schema)
+
+        self.assertEqual(response_format["json_schema"]["schema"], {
+            "type": "object",
+            "properties": {
+                "address": {"type": "string"},
+            },
+        })
+
     def test_extract_litellm_result_rejects_missing_message_content(self) -> None:
         response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=None))])
 

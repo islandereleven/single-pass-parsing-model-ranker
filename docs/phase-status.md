@@ -1,6 +1,6 @@
 # Phase Status
 
-Current phase: **Phase E readiness**.
+Current phase: **Phase E operations**.
 
 The project has moved beyond mission concept, requirements capture, architecture definition, the first working prototype, and core evaluator verification. The document/corpus contract exists as files, code, and tests, the evaluation semantics are documented in [evaluation-contract.md](evaluation-contract.md), the evaluator architecture is defined in [evaluator-architecture.md](evaluator-architecture.md), the Phase C prototype runs end to end against Gemini, and Phase D verifies the core scoring/failure contract.
 
@@ -37,7 +37,7 @@ Completed evidence:
 
 Deferred Phase A refinements:
 
-- Define opt-in fuzzy matching metadata once the ground-truth dataset needs it.
+- Expand opt-in comparison metadata as the ground-truth dataset needs it.
 - Decide how strongly latency and price affect final ranking versus being displayed as secondary columns after the first results exist.
 - Decide whether `data_model` remains JSON Schema only or whether authored Pydantic models become a first-class source format. Phase B keeps inline JSON Schema as the corpus source format and validates that contract in code.
 
@@ -82,7 +82,7 @@ Phase C progress:
 - LiteLLM structured-output call boundary is implemented.
 - Response JSON parsing is implemented.
 - Shared JSON Schema normalization for output and ground truth is implemented.
-- Field-level exact-match scoring is implemented.
+- Field-level exact-match scoring is implemented, with schema-owned fuzzy text comparison for noisy text fields.
 - Sequential evaluator runner glue is implemented.
 - Local `.env` loading is implemented for provider credentials, while `model_settings` rejects secret-like keys.
 - Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"`.
@@ -118,9 +118,44 @@ Deferred verification hardening:
 
 ### Phase E: Operations
 
-Status: **ready to start**.
+Status: **in progress**.
 
-Run batches in the cloud and publish rankings on islandereleven.com.
+Run larger batches and prepare the evaluator for repeatable operations.
+
+Phase E checklist:
+
+- [x] 1. Corpus growth: add a larger local corpus and register its fixed documents.
+- [x] 2. Conversion path for non-text document rows.
+- [ ] 3. File-backed run storage for repeatable local batches.
+- [ ] 4. Batch execution ergonomics for larger local runs.
+
+Phase E progress:
+
+- Added `0.2.0.json`, a 21-row corpus.
+- Added `0.3.0.json`, a 2-row mini corpus for document text resolution smoke checks.
+- Included the existing ACME text case in `0.2.0`.
+- Registered 20 source invoice images in `documents/documents.json` with checksums.
+- Kept generated OCR text files out of the corpus and document registry.
+- Added run-level `layout_to_text_strategy` and `ocr_strategy` tracking.
+- Added document text resolution for `.txt`, native-text PDFs, scanned PDFs, and image files.
+- Added per-attempt `document_text_sha256` for the exact text sent to the model.
+- Added `FieldComparison` rows for field-level scoring evidence.
+- Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
+
+Local smoke examples on `corpora/0.3.0.json`:
+
+| Model | Image-case score | Image-case mismatches | Image-case latency | Image-case cost | Notes |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `gemini/gemini-2.5-flash` | `0.714` | `10` | `6464ms` | `$0.004245` | Picked net-worth line totals before the prompt/schema fix clarified numeric amount fields. |
+| `gemini/gemini-3.5-flash` | `0.743` | `9` | `37505ms` | `$0.031306` | Same net-worth pattern as 2.5, with one fewer text mismatch. |
+| `gemini/gemini-3.1-pro-preview` | `0.886` | `4` | `24161ms` | `$0.050600` | Resolved the gross-worth line totals; remaining misses were address whitespace/text noise and OCR's `GB04`/`GBO4` confusion. |
+
+These are local smoke examples, not ranking exports. The text-field scores will change after `fuzzy_text` metadata because address whitespace and near-match descriptions now receive partial or full field credit.
+
+Current boundary:
+
+- PyTesseract OCR requires the `tesseract` system binary.
+- Multimodal model-native image/PDF input remains future work.
 
 ### Phase F: Evolution
 

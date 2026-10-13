@@ -34,6 +34,18 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+# Evaluation metadata
+
+
+class FieldComparisonMethod(StrEnum):
+    EXACT = "exact"
+    FUZZY_TEXT = "fuzzy_text"
+
+
+class FieldEvaluation(StrictModel):
+    comparison: FieldComparisonMethod = FieldComparisonMethod.EXACT
+
+
 # Corpus files
 
 
@@ -43,6 +55,7 @@ class DataModelSchema(RootModel[JsonObject]):
     @model_validator(mode="after")
     def _validate_object_contract(self) -> "DataModelSchema":
         schema = self.root
+        _validate_evaluation_metadata(schema)
         schema_type = schema.get("type")
         if schema_type not in (None, "object"):
             raise ValueError("data_model must declare an object-shaped top-level schema")
@@ -95,6 +108,17 @@ class TestCase(StrictModel):
         return value
 
 
+# Run strategies
+
+
+class LayoutToTextStrategy(StrEnum):
+    NATIVE_LAYOUT_TO_TEXT = "native_layout_to_text"
+
+
+class OcrStrategy(StrEnum):
+    PYTESSERACT = "pytesseract"
+
+
 # LLM call results
 
 
@@ -133,6 +157,7 @@ class FailureReason(StrEnum):
     NO_RESPONSE = "no_response"
     EMPTY_RESPONSE = "empty_response"
     REFUSAL = "refusal"
+    DOCUMENT_TEXT_EXTRACTION_ERROR = "document_text_extraction_error"
     INVALID_JSON = "invalid_json"
     SCHEMA_VALIDATION_ERROR = "schema_validation_error"
     NORMALIZATION_ERROR = "normalization_error"
@@ -149,6 +174,8 @@ class Run(StrictModel):
     provider: str | None = None
     model_settings: JsonObject = Field(default_factory=dict)
     model_metadata: JsonObject = Field(default_factory=dict)
+    layout_to_text_strategy: LayoutToTextStrategy = LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT
+    ocr_strategy: OcrStrategy = OcrStrategy.PYTESSERACT
     failure_reason: FailureReason | None = None
     started_at: datetime = Field(default_factory=_utc_now)
     ended_at: datetime | None = None
@@ -167,6 +194,7 @@ class RunTestCase(StrictModel):
     raw_response_metadata: JsonObject = Field(default_factory=dict)
     parsed_output: JsonValue = None
     normalized_output: JsonValue = None
+    document_text_sha256: str | None = None
     latency_ms: int | None = Field(default=None, ge=0)
     input_tokens: int | None = Field(default=None, ge=0)
     output_tokens: int | None = Field(default=None, ge=0)
@@ -181,8 +209,76 @@ class RunTestCase(StrictModel):
     created_at: datetime = Field(default_factory=_utc_now)
 
 
+class FieldComparison(StrictModel):
+    """One normalized field comparison for one run test case."""
+
+    run_id: UUID
+    test_case_id: UUID
+    field_path: str = Field(min_length=1)
+    expected_value: JsonValue = None
+    actual_value: JsonValue = None
+    expected_present: bool = True
+    actual_present: bool = True
+    matched: bool
+    score: float = Field(ge=0.0, le=1.0)
+    comparison_method: FieldComparisonMethod = FieldComparisonMethod.EXACT
+    created_at: datetime = Field(default_factory=_utc_now)
+
+
 def storage_schemas() -> dict[str, JsonObject]:
     return {
         "runs": Run.model_json_schema(),
         "run_test_cases": RunTestCase.model_json_schema(),
+        "field_comparisons": FieldComparison.model_json_schema(),
     }
+
+
+def extraction_schema(data_model: JsonObject) -> JsonObject:
+    """Return the JSON Schema used for provider calls and value validation."""
+
+    return _strip_evaluation_metadata(DataModelSchema(data_model).as_dict())
+
+
+def _validate_evaluation_metadata(value: Any) -> None:
+    if isinstance(value, dict):
+        evaluation = value.get("evaluation")
+        if evaluation is not None:
+            FieldEvaluation.model_validate(evaluation)
+
+        properties = value.get("properties")
+        if isinstance(properties, dict):
+            for property_schema in properties.values():
+                _validate_evaluation_metadata(property_schema)
+
+        items = value.get("items")
+        if isinstance(items, dict):
+            _validate_evaluation_metadata(items)
+
+        for key in ("anyOf", "oneOf", "allOf"):
+            schemas = value.get(key)
+            if isinstance(schemas, list):
+                for schema in schemas:
+                    _validate_evaluation_metadata(schema)
+
+
+def _strip_evaluation_metadata(value: Any) -> Any:
+    if isinstance(value, dict):
+        cleaned: dict[str, Any] = {
+            key: _strip_evaluation_metadata(child)
+            for key, child in value.items()
+            if key != "evaluation"
+        }
+
+        properties = value.get("properties")
+        if isinstance(properties, dict):
+            cleaned["properties"] = {
+                name: _strip_evaluation_metadata(property_schema)
+                for name, property_schema in properties.items()
+            }
+
+        return cleaned
+
+    if isinstance(value, list):
+        return [_strip_evaluation_metadata(item) for item in value]
+
+    return value

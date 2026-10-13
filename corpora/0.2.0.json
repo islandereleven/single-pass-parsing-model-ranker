@@ -1,0 +1,3643 @@
+[
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "5c9c0d9b-a412-4f0a-9cc6-fdb164b2c1f5",
+    "document_id": "2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9",
+    "data_model": {
+      "title": "Invoice",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supplier_name",
+        "invoice_number",
+        "invoice_date",
+        "due_date",
+        "bill_to",
+        "currency",
+        "subtotal",
+        "tax",
+        "total",
+        "payment_terms",
+        "line_items"
+      ],
+      "properties": {
+        "supplier_name": {
+          "type": "string"
+        },
+        "invoice_number": {
+          "type": "string"
+        },
+        "invoice_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "bill_to": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "tax": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "payment_terms": {
+          "type": "string"
+        },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "unit_price",
+              "total"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "unit_price": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the document text. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Do not include explanations, markdown, comments, or extra keys. If a value is not present in the document, use null only when the data model allows null; otherwise leave the field in the best valid form supported by the document and data model.",
+    "ground_truth": {
+      "supplier_name": "ACME Widgets",
+      "invoice_number": "INV-0001",
+      "invoice_date": "2026-10-01",
+      "due_date": "2026-10-31",
+      "bill_to": "Islander Eleven LLC",
+      "currency": "USD",
+      "subtotal": 162.5,
+      "tax": 13.0,
+      "total": 175.5,
+      "payment_terms": "Net 30",
+      "line_items": [
+        {
+          "description": "Stainless bolt kit",
+          "quantity": 3,
+          "unit_price": 12.5,
+          "total": 37.5
+        },
+        {
+          "description": "Calibration service",
+          "quantity": 1,
+          "unit_price": 125.0,
+          "total": 125.0
+        }
+      ]
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "9b811282-305e-4440-9bd9-711a1a49017f",
+    "document_id": "9c924967-7894-48ca-a488-fb786d0d7be1",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "3043 Peters Lights Suite 433\nGreerton, NV 21983",
+        "client_name": "Salinas Ltd",
+        "due_date": "",
+        "invoice_date": "05/20/2013",
+        "invoice_number": "86736203",
+        "seller_address": "5907 Donna Club\nRobinsonside, DC 18710",
+        "seller_name": "Potter-Gordon"
+      },
+      "items": [
+        {
+          "description": "Cartoon Rabbit Printed Round Carpet Area Rug Children Play Tent Floor Mat Rug",
+          "quantity": 2.0,
+          "total_price": 389.58
+        },
+        {
+          "description": "Muted Vegetable Dye Khootan Oriental Area Rug Hand-knotted Floral 8'x11' Carpet",
+          "quantity": 4.0,
+          "total_price": 8868.82
+        },
+        {
+          "description": "Abstract Living Room Carpet Home Decor Nordic Style Bedside Area Rug Floor Mats",
+          "quantity": 5.0,
+          "total_price": 132.06
+        },
+        {
+          "description": "Yilong 8x10ft Hand knotted Wool Carpets Home Decor Modern Villa Area Rug P39",
+          "quantity": 1.0,
+          "total_price": 5544.0
+        },
+        {
+          "description": "Romantic Rose Flowers Area Rugs Kitchen Living Room Floor Mat Non-slip Carpets",
+          "quantity": 1.0,
+          "total_price": 14.71
+        },
+        {
+          "description": "World Map Round Carpets Room Printed Area Rug Blue Floor Mat Bedroom Play Mat",
+          "quantity": 5.0,
+          "total_price": 460.79
+        },
+        {
+          "description": "Xmas Christmas Rug Carpet Cartoon Bedroom Kids Play Mat Soft Flannel Area Rugs @",
+          "quantity": 4.0,
+          "total_price": 164.16
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "GB04NPPR85049860720734",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 1415.83,
+        "total": 15574.11
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "079934e7-ce5d-464f-ab15-6cb31d1af368",
+    "document_id": "b86ebcf3-cbc3-4fc8-b0fc-66995050b587",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "60356 Kenneth Corners\nLake Justinberg, WA 57791",
+        "client_name": "Baker-Dixon",
+        "due_date": "",
+        "invoice_date": "12/22/2013",
+        "invoice_number": "10060256",
+        "seller_address": "4510 Mcguire Stravenue\nJessicachaven, NV 75027",
+        "seller_name": "Kim-Davenport"
+      },
+      "items": [
+        {
+          "description": "Story of a Soul: The Autobiography of St. Therese of Lisieux",
+          "quantity": 2.0,
+          "total_price": 20.57
+        },
+        {
+          "description": "Poor Charlie's Almanack The Wit and Wisdom of Charles T Munger 3rd Ed. BRAND NEW",
+          "quantity": 2.0,
+          "total_price": 142.89
+        },
+        {
+          "description": "The Last Kings of Shanghai by Jonathan Kaufman",
+          "quantity": 5.0,
+          "total_price": 16.45
+        },
+        {
+          "description": "That Quail Robert",
+          "quantity": 2.0,
+          "total_price": 10.76
+        },
+        {
+          "description": "Day Trading Joe Ross New Hard cover English edition",
+          "quantity": 2.0,
+          "total_price": 275.0
+        },
+        {
+          "description": "Our Family Tree A History of Our Family",
+          "quantity": 4.0,
+          "total_price": 19.76
+        },
+        {
+          "description": "A Million Little Bricks The Unofficial Illustrated History of the LE",
+          "quantity": 3.0,
+          "total_price": 14.82
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 45.48,
+        "total": 500.24
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "6c439edc-93d1-4d57-8a13-3d98ac4a0159",
+    "document_id": "0c6677c0-6cae-475c-b4c4-68faa24db4f8",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "445 Haas Viaduct Suite 454\nMichaelhaven, LA 32852",
+        "client_name": "Garcia Inc",
+        "due_date": "",
+        "invoice_date": "10/28/2019",
+        "invoice_number": "49565075",
+        "seller_address": "968 Carr Mission Apt. 320\nBernardville, VA 28211",
+        "seller_name": "Kane-Morgan"
+      },
+      "items": [
+        {
+          "description": "Anthropologie Gold Elegant Swan Decorative Metal Bottle Stopper Wine Saver",
+          "quantity": 3.0,
+          "total_price": 65.93
+        },
+        {
+          "description": "Lolita Happy Retirement Wine Glass 15 Ounce GLS11-5534H",
+          "quantity": 1.0,
+          "total_price": 8.8
+        },
+        {
+          "description": "Lolita \"Congratulations\" Hand Painted and Decorated Wine Glass NIB",
+          "quantity": 1.0,
+          "total_price": 22.0
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 8.79,
+        "total": 96.73
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "52216972-2e20-4d1d-8dc9-1265c6731bea",
+    "document_id": "0b457399-cc9e-4f8a-bf3b-29aaf27f39a7",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "0557 Mark Meadow\nEast William, MI 02744",
+        "client_name": "Russo, Schroeder and Hanson",
+        "due_date": "",
+        "invoice_date": "07/14/2013",
+        "invoice_number": "68800500",
+        "seller_address": "614 Figueroa Haven\nWest Amber, ID 46918",
+        "seller_name": "Scott, Long and Smith"
+      },
+      "items": [
+        {
+          "description": "Elegant Wine Glasses w/Hand Splatter Painted Accents (3pcs)",
+          "quantity": 1.0,
+          "total_price": 22.0
+        },
+        {
+          "description": "1pc Wine Display Rack Wine Holders Wine Bottle Racks for Home Cabinet",
+          "quantity": 4.0,
+          "total_price": 260.7
+        },
+        {
+          "description": "Set of 2 Stemless Christmas Wine Glasses NEW",
+          "quantity": 4.0,
+          "total_price": 52.8
+        },
+        {
+          "description": "VTG BRASS BRONZE GLASS GRAPE LEAVES ORNATE WINE BOTTLE HOLDER",
+          "quantity": 3.0,
+          "total_price": 32.97
+        },
+        {
+          "description": "Portable Wine Rack Bar Stainless Steel With Handle Single Bottle Free Standing",
+          "quantity": 1.0,
+          "total_price": 51.46
+        },
+        {
+          "description": "Pier 1 Multi-color Cordial Liqueur Wine Glasses Set of 4",
+          "quantity": 2.0,
+          "total_price": 66.0
+        },
+        {
+          "description": "Vintage Set of 3 Cobalt Blue Glass Wine Glasses / Water Goblets Barware Stemware",
+          "quantity": 2.0,
+          "total_price": 52.8
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 48.98,
+        "total": 538.73
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "fc58b410-530b-4dd9-8196-a53d3e23100a",
+    "document_id": "e0b3cb6f-bf6f-455b-9c34-644786d75474",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "6559 Lawrence Cape\nWest Denisechester, WY 06980",
+        "client_name": "Vazquez-Tucker",
+        "due_date": "",
+        "invoice_date": "03/21/2017",
+        "invoice_number": "94067363",
+        "seller_address": "731 Louis Branch\nBenjaminstad, ID 02694",
+        "seller_name": "Stafford, Reynolds and Hood"
+      },
+      "items": [
+        {
+          "description": "10\" Cuphead Game Soft Plush\nDoll Cuphead Mugman Mecup\nBrocup kids Gift US Stock",
+          "quantity": 5.0,
+          "total_price": 148.44
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 13.49,
+        "total": 148.44
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "a3eae8c7-4326-4347-a2c3-aed67654559d",
+    "document_id": "568fdd8d-6369-45be-8929-6da46f62b2c5",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "18463 Jessica Pine\nPort Alejandroton, SC 14426",
+        "client_name": "Stewart-Moyer",
+        "due_date": "",
+        "invoice_date": "06/20/2015",
+        "invoice_number": "43292704",
+        "seller_address": "1222 Alyssa Locks\nWest Desiree, SD 31353",
+        "seller_name": "Ball-King"
+      },
+      "items": [
+        {
+          "description": "72 Inches Marble Dinning Table\nTop Pietra Dura Art Lawn Table\nfor Home Furniture",
+          "quantity": 2.0,
+          "total_price": 18480.0
+        },
+        {
+          "description": "12\" White Marble Coffee Table\nTop Malachite Precious Inlay\nDecor Furniture W534",
+          "quantity": 1.0,
+          "total_price": 325.3
+        },
+        {
+          "description": "15\"x15\" White Marble Coffee\nTable Top With 15\" Tall Stand\nSemi Precious Art Deco",
+          "quantity": 1.0,
+          "total_price": 633.59
+        },
+        {
+          "description": "7'x4' Pietra Dura Marble Dining\nHallway Table Top Inlay Design\nPatio Decor E977A",
+          "quantity": 4.0,
+          "total_price": 85828.73
+        },
+        {
+          "description": "25 Inches Black Marble Center\nTable Top with Multi Stones\nCoffee Table for Home",
+          "quantity": 3.0,
+          "total_price": 2413.13
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "GB53PJLB26614594763765",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 9789.16,
+        "total": 107680.75
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "4479e468-cbf5-48af-b1ab-33f43ddaa677",
+    "document_id": "c91d50ff-0b95-4c9f-91cf-f0cd6d7da8d8",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "747 Tyler Fort Apt. 215\nPort James, ND 02107",
+        "client_name": "Lewis, Hansen and Martin",
+        "due_date": "",
+        "invoice_date": "10/19/2013",
+        "invoice_number": "31838082",
+        "seller_address": "38980 Hill Knolls\nMatthewborough, UT 25439",
+        "seller_name": "Howe, Evans and Velazquez"
+      },
+      "items": [
+        {
+          "description": "Skechers Hypno Splash Light Up Shoes Size 4 Medium Big Kid New",
+          "quantity": 3.0,
+          "total_price": 82.47
+        },
+        {
+          "description": "PLAE SAM 2.0 Shoes Sandals Breathable Summer Strap Navy Blue Size 12 Kid",
+          "quantity": 4.0,
+          "total_price": 66.0
+        },
+        {
+          "description": "Boys Kids Printed Cotton Slippers Zip Fastening 350172494",
+          "quantity": 2.0,
+          "total_price": 43.3
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 17.43,
+        "total": 191.76
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "5b0f0bdd-537e-44ae-ade1-f326da132350",
+    "document_id": "220342b0-4b92-44bc-b327-a83fae6ca929",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "10615 Parker Squares Suite 427\nWaltershaven, TN 05191",
+        "client_name": "Carter, Kelley and Scott",
+        "due_date": "",
+        "invoice_date": "11/18/2011",
+        "invoice_number": "45141161",
+        "seller_address": "584 Howell Gateway Apt. 071\nChristinaport, DE 37391",
+        "seller_name": "Webster-Pierce"
+      },
+      "items": [
+        {
+          "description": "24\" Sale Online Coffee Top Table Marquetry Inlay Floral Design Christmas Gift",
+          "quantity": 2.0,
+          "total_price": 2613.6
+        },
+        {
+          "description": "18\" Black Marble Coffee Table Top Mother of Pearl Inlay Furniture Decors H1883B",
+          "quantity": 4.0,
+          "total_price": 1661.66
+        },
+        {
+          "description": "Used t shirt Blue",
+          "quantity": 5.0,
+          "total_price": 330.0
+        },
+        {
+          "description": "12\" White Marble Coffee Table Top Malachite Precious Inlay Decor Furniture W534",
+          "quantity": 2.0,
+          "total_price": 650.61
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 477.81,
+        "total": 5255.87
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "a0af81b5-d69a-440a-baab-b412db18778c",
+    "document_id": "5e2238be-028b-4bcf-b00b-32effaa781cf",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "0875 Charles Village Suite 140\nReidfort, NC 33037",
+        "client_name": "Jones LLC",
+        "due_date": "",
+        "invoice_date": "05/21/2021",
+        "invoice_number": "76322049",
+        "seller_address": "6710 Sean Ports\nLake Kristine, CT 42610",
+        "seller_name": "Carter, Molina and Garcia"
+      },
+      "items": [
+        {
+          "description": "Straw Dogs : Thoughts on Humans and Other Animals, Paperback by Gray, John, L...",
+          "quantity": 4.0,
+          "total_price": 61.56
+        },
+        {
+          "description": "Titans of the Rising Sun - Yamato Class Battleships of World War II Book",
+          "quantity": 3.0,
+          "total_price": 24.85
+        },
+        {
+          "description": "The Graphic Design Reference & Specification Book: Everything Graphic Designers",
+          "quantity": 2.0,
+          "total_price": 44.4
+        },
+        {
+          "description": "Sasinowski M-Legacy Of Ra BOOK NEW",
+          "quantity": 3.0,
+          "total_price": 64.02
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 17.71,
+        "total": 194.82
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "b90982ed-1b83-42f7-82ef-6838e2deb025",
+    "document_id": "2802cc66-9dd8-476b-a636-6bf3398dce2f",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "670 Kristen Hill\nGillespieside, MN 95724",
+        "client_name": "Gregory Inc",
+        "due_date": "",
+        "invoice_date": "12/05/2018",
+        "invoice_number": "48223084",
+        "seller_address": "778 Smith Port\nStephensmouth, HI 54963",
+        "seller_name": "Rodriguez-Conley"
+      },
+      "items": [
+        {
+          "description": "LAUREN RALPH LAUREN Womens Landette V-Neck A-Line Dress Size 6 NWT $200",
+          "quantity": 5.0,
+          "total_price": 252.95
+        },
+        {
+          "description": "Xhilaration Womens L Burgandy Boho Embroidered Festival Mini Dress NEW",
+          "quantity": 5.0,
+          "total_price": 82.23
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 30.47,
+        "total": 335.17
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "91d5eb73-0f04-4bdf-8d3d-e87a0ea5b166",
+    "document_id": "54c47273-7158-44fd-94a2-a369478943e9",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "4159 Brown Valley Apt. 572\nBrownstad, MN 48794",
+        "client_name": "Kirby-Charles",
+        "due_date": "",
+        "invoice_date": "11/21/2018",
+        "invoice_number": "76588527",
+        "seller_address": "49905 Anthony Loaf\nNorth Kristi, WA 43365",
+        "seller_name": "Oliver and Sons"
+      },
+      "items": [
+        {
+          "description": "Nintendo 64 Console with Box, Foam and extra oem controller",
+          "quantity": 1.0,
+          "total_price": 132.0
+        },
+        {
+          "description": "Sony PlayStation 3 150GB Charcoal Black Console (Used)",
+          "quantity": 4.0,
+          "total_price": 615.96
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 68.0,
+        "total": 747.96
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "fb90c1bc-805f-4790-bab2-975292585929",
+    "document_id": "ef793c38-dd17-4887-82f8-5ce91a3f1d08",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "15760 Freeman Spur Apt. 935\nSouth Timothyhaven, DE 52742",
+        "client_name": "Marshall-Perez",
+        "due_date": "",
+        "invoice_date": "04/15/2012",
+        "invoice_number": "70284416",
+        "seller_address": "4332 Tina Lakes Suite 445\nChrisburgh, WV 43352",
+        "seller_name": "Johnson PLC"
+      },
+      "items": [
+        {
+          "description": "Wine Glasses Set Of 4",
+          "quantity": 2.0,
+          "total_price": 13.2
+        },
+        {
+          "description": "Beautiful Blue Dolphin Wine\nBottle Stopper New In Box",
+          "quantity": 3.0,
+          "total_price": 19.77
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 3.0,
+        "total": 32.97
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "45bf3282-7899-4072-9445-6c4ed2f4bb6b",
+    "document_id": "68dfd5f9-1f40-49ee-a16c-ad55cc52971e",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "765 Danny Islands\nNew Robinberg, KS 90636",
+        "client_name": "Watts-Glover",
+        "due_date": "",
+        "invoice_date": "12/04/2015",
+        "invoice_number": "16131761",
+        "seller_address": "177 Ralph Oval Apt. 840\nLake Julie, MD 68049",
+        "seller_name": "Figueroa, Richard and Hunter"
+      },
+      "items": [
+        {
+          "description": "Rickshaw Decoration Gift Wine Rack Retro Holder Bar Home Ornaments Vintage Iron",
+          "quantity": 4.0,
+          "total_price": 314.56
+        },
+        {
+          "description": "Custom wine glass",
+          "quantity": 4.0,
+          "total_price": 83.6
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 36.2,
+        "total": 398.16
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "e6ece203-cb4d-40d5-b478-521a266f4f26",
+    "document_id": "2b57c357-9cd1-40b5-899d-2d9cb5f4ba29",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "6669 Burns Passage Suite 131\nPort Stephanie, WI 18459",
+        "client_name": "Cook, Anderson and Bowen",
+        "due_date": "",
+        "invoice_date": "01/26/2018",
+        "invoice_number": "64248693",
+        "seller_address": "33408 Pam Plain\nNew Derek, NM 69566",
+        "seller_name": "Morgan, Rogers and Brown"
+      },
+      "items": [
+        {
+          "description": "12\" White Marble Coffee Table\nTop Malachite Precious Inlay\nDecor Furniture W534",
+          "quantity": 3.0,
+          "total_price": 975.91
+        },
+        {
+          "description": "2 Industrial Live edge Legs 16\"\nTall Cast Aluminum Cast Iron\nCoffee Table Bench",
+          "quantity": 3.0,
+          "total_price": 525.62
+        },
+        {
+          "description": "12\" Marble Side Coffee Table\nTop Multi Stone Floral Inlay\nOccasional Decor W260",
+          "quantity": 1.0,
+          "total_price": 285.75
+        },
+        {
+          "description": "Marble Beautiful White Coffee\nTable Top Malachite Inlay Art\nHome Decor H5372",
+          "quantity": 3.0,
+          "total_price": 894.33
+        },
+        {
+          "description": "36\" Round Marble Dining Table\nLapis Mosaic Floral Inlay\nFurniture Decorates B397",
+          "quantity": 3.0,
+          "total_price": 4917.0
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 690.78,
+        "total": 7598.61
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "ffcb90ad-290a-43df-ac76-53654c241074",
+    "document_id": "dcf4adb8-7099-4067-86ce-eb3f4f6ff211",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "7303 Russell Row Apt. 688\nPort Anneburgh, OK 11966",
+        "client_name": "Garcia, Castro and Smith",
+        "due_date": "",
+        "invoice_date": "12/19/2015",
+        "invoice_number": "35471025",
+        "seller_address": "20518 Andrews Crest\nMurphyland, OH 89392",
+        "seller_name": "Nixon, Mclean and Nelson"
+      },
+      "items": [
+        {
+          "description": "Dell Desktop Computer Optiplex 790 Tower PC Core i5 8GB 500GB Windows 10 Pro",
+          "quantity": 4.0,
+          "total_price": 659.78
+        },
+        {
+          "description": "Dell Desktop Computers \u25a1\nCore i5 16GB 2TB HD 512GB SSD \u25a1 Windows 10 PC 22\" LCD",
+          "quantity": 5.0,
+          "total_price": 714.73
+        },
+        {
+          "description": "Lenovo i5 | 32GB | 2TB | SSD Windows 10 Pro Desktop Computer PC Wifi Bluetooth",
+          "quantity": 2.0,
+          "total_price": 305.8
+        },
+        {
+          "description": "gaming pc desktop computer intel i5",
+          "quantity": 2.0,
+          "total_price": 1870.0
+        },
+        {
+          "description": "HP Windows 10 Pro Desktop Computer Intel QUAD CORE i5 Wifi, Keyboard & Mouse",
+          "quantity": 5.0,
+          "total_price": 934.73
+        },
+        {
+          "description": "Vintage Microsolutions Pentium 133mhz Desktop Tower PC Windows 95 5.25 Floppy",
+          "quantity": 2.0,
+          "total_price": 858.0
+        },
+        {
+          "description": "HP Elite 8200 Desktop Computer Tower Intel i5 8GB 1TB 19\"LCD Windows 10 Pro WiFi",
+          "quantity": 2.0,
+          "total_price": 483.89
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 529.72,
+        "total": 5826.92
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "8ac763d0-fe63-4619-af4c-53acbb440556",
+    "document_id": "fbb6aac3-cdcd-4e39-82b7-e7228871e2f6",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "681 Clark Forest Suite 820\nPort Cherylburgh, ID 63932",
+        "client_name": "Chavez, Allison and Evans",
+        "due_date": "",
+        "invoice_date": "04/08/2021",
+        "invoice_number": "25784321",
+        "seller_address": "81489 Kyle Creek\nLake Wendy, FL 64084",
+        "seller_name": "Mercer, Castro and Sanchez"
+      },
+      "items": [
+        {
+          "description": "Dell Desktop Computer Tower Optiplex Core i5 8GB 1TB HD DVD Wifi Windows 10 Pro",
+          "quantity": 5.0,
+          "total_price": 934.73
+        },
+        {
+          "description": "AMD Dual Core 3.9Ghz 4GB DDR3 500GB WiFi Windows 10 office Desktop PC Computer",
+          "quantity": 1.0,
+          "total_price": 274.99
+        },
+        {
+          "description": "Fast Dell Optiplex Windows 10 Pro Desktop Computer Dual Core 6GB 160GB DVD WIFI",
+          "quantity": 3.0,
+          "total_price": 395.84
+        },
+        {
+          "description": "HP ProDesk 600 G5 Mini Desktop Computer i5-9500T 8GB 256GB SSD W10 (new)",
+          "quantity": 1.0,
+          "total_price": 658.9
+        },
+        {
+          "description": "Sentry Gaming Computer | Ryzen 3 3200G | 16 GB Ram | Build-to-Order",
+          "quantity": 5.0,
+          "total_price": 3272.45
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "GB29FXOZ88993558649239",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 503.35,
+        "total": 5536.89
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "4adc98e9-09be-443e-9de1-8651259f73b0",
+    "document_id": "09b02771-1ecc-40f1-b92d-fff899427b24",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "0610 Nicholson Ramp Apt. 110\nEast Heatherview, AK 01203",
+        "client_name": "Clay, Cook and Nichols",
+        "due_date": "",
+        "invoice_date": "04/23/2013",
+        "invoice_number": "82308284",
+        "seller_address": "990 Mark Stream\nSalasfort, MT 29045",
+        "seller_name": "Sullivan-Burns"
+      },
+      "items": [
+        {
+          "description": "VTG BRASS BRONZE GLASS GRAPE LEAVES ORNATE WINE BOTTLE HOLDER",
+          "quantity": 1.0,
+          "total_price": 10.99
+        },
+        {
+          "description": "CYLINDER GLASS PAROT for 100ml WHISKEY WINE BEER FORCES OF ALCOHOL HOOCH",
+          "quantity": 3.0,
+          "total_price": 115.5
+        },
+        {
+          "description": "Wine Rack Holder Iron Art Hanging Racks Glass Cup Stemware Shelf Mounted 2 Color",
+          "quantity": 3.0,
+          "total_price": 61.87
+        },
+        {
+          "description": "NEW Wall Mounted Metal Relax Glass and Bottle Holder Wine Cork Storage 4 Rack",
+          "quantity": 4.0,
+          "total_price": 158.36
+        },
+        {
+          "description": "Wine Openers. Heavy Duty Stainless Steel Hinges Wine Key.12Pcs/Random Color.",
+          "quantity": 4.0,
+          "total_price": 131.96
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 43.52,
+        "total": 478.68
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "5d4f3d91-2902-4e27-b703-78b0c8e5af0e",
+    "document_id": "34f1a87d-062c-4e37-a03b-ee99c1600665",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "47118 Michelle Falls\nNorth Glenfort, IN 12445",
+        "client_name": "Anderson-Bonilla",
+        "due_date": "",
+        "invoice_date": "12/10/2016",
+        "invoice_number": "73381889",
+        "seller_address": "33412 Holly Village Apt. 282\nLake Wendyfort, WY 58295",
+        "seller_name": "Salinas, Dominguez and Hamilton"
+      },
+      "items": [
+        {
+          "description": "Sasinowski M-Legacy Of Ra\nBOOK NEW",
+          "quantity": 5.0,
+          "total_price": 106.7
+        },
+        {
+          "description": "BEVERLY HILLBILLIES 1993 TV Show BOOK 1st Edition\nAUTOGRAPHED Signed\nSTEPHEN COX",
+          "quantity": 3.0,
+          "total_price": 82.47
+        },
+        {
+          "description": "Catechism of the Catholic Church",
+          "quantity": 3.0,
+          "total_price": 16.14
+        },
+        {
+          "description": "A Woman of Substance",
+          "quantity": 2.0,
+          "total_price": 10.76
+        },
+        {
+          "description": "My Passion for Design by Barbra Streisand",
+          "quantity": 1.0,
+          "total_price": 6.12
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 20.2,
+        "total": 222.18
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "2d5b49fe-283b-4f98-9e82-0f5bd206a965",
+    "document_id": "245ee874-36c6-40a0-9ec1-461b833cd2b9",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "4895 Valdez Neck Suite 925\nMichaelstad, MI 10544",
+        "client_name": "Wilson Group",
+        "due_date": "",
+        "invoice_date": "08/30/2012",
+        "invoice_number": "91327263",
+        "seller_address": "USNV Steele\nFPO AE 80974",
+        "seller_name": "Wolf, Smith and Shaffer"
+      },
+      "items": [
+        {
+          "description": "Valentine's Day Roses Area Rugs Floor Mat Non-slip Romantic Bedroom Carpet Decor",
+          "quantity": 5.0,
+          "total_price": 65.56
+        },
+        {
+          "description": "Bohemian Rag Rug- Woven Chindi Dari Living Room Rug / Hand-Woven Carpet Rug-Mats",
+          "quantity": 4.0,
+          "total_price": 102.92
+        },
+        {
+          "description": "Hippie 3D Starry Sky Carpet Child Play Area Rug Kids Room Carpets Mat Home Decor",
+          "quantity": 5.0,
+          "total_price": 64.29
+        },
+        {
+          "description": "6'8 x 5' Handwoven Afghan Kilim Wool Area Rug Kelim Tapis Oriental Carpet #4434",
+          "quantity": 3.0,
+          "total_price": 854.7
+        },
+        {
+          "description": "Modern Tribal Geometric 4X6 Indo Gabbeh Wool & Bamboo Silk Oriental Rug Carpet",
+          "quantity": 2.0,
+          "total_price": 404.29
+        },
+        {
+          "description": "Pretty Woman Small Large Long Floor Carpet Area Rugs Various Size Soft Rug",
+          "quantity": 5.0,
+          "total_price": 199.65
+        },
+        {
+          "description": "New Candy Color Soft Anti-Skid Carpet Soft Non slip Rug Living Bedroom Floor Mat",
+          "quantity": 1.0,
+          "total_price": 13.19
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 154.96,
+        "total": 1704.6
+      }
+    }
+  },
+  {
+    "corpus_id": "3b0d1e43-a649-5e66-a3b0-1a03960970e3",
+    "test_case_id": "56ca3c93-dd41-4a23-bc1f-70c21c635b0e",
+    "document_id": "597412fc-5916-4958-965c-0f6dc108db80",
+    "data_model": {
+      "title": "InvoiceExtraction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice",
+        "items",
+        "subtotal",
+        "payment_instructions"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "client_name",
+            "client_address",
+            "seller_name",
+            "seller_address",
+            "invoice_number",
+            "invoice_date",
+            "due_date"
+          ],
+          "properties": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "seller_name": {
+              "type": "string"
+            },
+            "seller_address": {
+              "type": "string",
+              "evaluation": {
+                "comparison": "fuzzy_text"
+              }
+            },
+            "invoice_number": {
+              "type": "string"
+            },
+            "invoice_date": {
+              "type": "string"
+            },
+            "due_date": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "quantity",
+              "total_price"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "evaluation": {
+                  "comparison": "fuzzy_text"
+                }
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "total_price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tax",
+            "discount",
+            "total"
+          ],
+          "properties": {
+            "tax": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            }
+          }
+        },
+        "payment_instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "due_date",
+            "bank_name",
+            "account_number",
+            "payment_method"
+          ],
+          "properties": {
+            "due_date": {
+              "type": "string"
+            },
+            "bank_name": {
+              "type": "string"
+            },
+            "account_number": {
+              "type": "string"
+            },
+            "payment_method": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "prompt": "Extract the requested structured data from the invoice document. Return exactly one JSON object that conforms to the provided data model. Use only information supported by the document. Return quantities, line-item totals, tax, and grand totals as JSON numbers using a period decimal separator and no thousands separators. Preserve non-numeric strings exactly, including punctuation, spacing, and empty strings when a string value is absent. Do not include explanations, markdown, comments, or extra keys.",
+    "ground_truth": {
+      "invoice": {
+        "client_address": "36262 Walters Vista\nEvansstad, ND 36644",
+        "client_name": "Davidson-Martinez",
+        "due_date": "",
+        "invoice_date": "11/01/2017",
+        "invoice_number": "17045625",
+        "seller_address": "88013 Keith Orchard\nPort Jenniferfurt, ID 01419",
+        "seller_name": "Bass-Petersen"
+      },
+      "items": [
+        {
+          "description": "Cell: A Novel by Stephen King",
+          "quantity": 4.0,
+          "total_price": 17.96
+        },
+        {
+          "description": "A History of the Indians of the United States (The",
+          "quantity": 1.0,
+          "total_price": 4.49
+        },
+        {
+          "description": "Quilts of Illusion",
+          "quantity": 1.0,
+          "total_price": 5.79
+        }
+      ],
+      "payment_instructions": {
+        "account_number": "GB43AYYU13392404742725",
+        "bank_name": "",
+        "due_date": "",
+        "payment_method": ""
+      },
+      "subtotal": {
+        "discount": "",
+        "tax": 2.82,
+        "total": 28.24
+      }
+    }
+  }
+]

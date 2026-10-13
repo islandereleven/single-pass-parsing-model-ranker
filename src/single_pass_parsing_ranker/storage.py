@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from single_pass_parsing_ranker.models import Run, RunTestCase
+from single_pass_parsing_ranker.models import FieldComparison, Run, RunTestCase
 
 
 def append_jsonl(path: str | Path, row: BaseModel) -> None:
@@ -24,4 +24,8 @@ def append_run(path: str | Path, run: Run) -> None:
 
 
 def append_run_test_case(path: str | Path, row: RunTestCase) -> None:
+    append_jsonl(path, row)
+
+
+def append_field_comparison(path: str | Path, row: FieldComparison) -> None:
     append_jsonl(path, row)
