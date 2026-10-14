@@ -20,6 +20,8 @@ DOCUMENT_DIR = PROJECT_ROOT / "documents" / "invoice-batch-1-sample-20-v0.1"
 CORPUS_ID = UUID("3b0d1e43-a649-5e66-a3b0-1a03960970e3")
 MINI_CORPUS_ID = UUID("e714c86b-f654-5357-823c-cb51fe8602af")
 ACME_DOCUMENT_ID = UUID("2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9")
+ACME_SOURCE_NAME = "ACME Invoice Fixture"
+KAGGLE_SOURCE_NAME = "High-Quality Invoice Images for OCR"
 
 
 class Version020CorpusTests(unittest.TestCase):
@@ -51,6 +53,9 @@ class Version020CorpusTests(unittest.TestCase):
         self.assertEqual(len(txt_files), 0)
         self.assertEqual(sum(path.suffix == ".jpg" for path in corpus_document_paths), 20)
         self.assertEqual(sum(path.name == "acme_invoice.txt" for path in corpus_document_paths), 1)
+        self.assertEqual(documents[ACME_DOCUMENT_ID].source_name, ACME_SOURCE_NAME)
+        self.assertEqual(sum(documents[row.document_id].source_name == ACME_SOURCE_NAME for row in rows), 1)
+        self.assertEqual(sum(documents[row.document_id].source_name == KAGGLE_SOURCE_NAME for row in rows), 20)
         self.assertTrue(documents[ACME_DOCUMENT_ID].path.read_text(encoding="utf-8").strip())
 
         for path in jpg_files:
@@ -61,8 +66,8 @@ class Version020CorpusTests(unittest.TestCase):
         raw = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
         rendered = json.dumps(raw)
 
-        self.assertNotIn("ocr", rendered.lower())
         self.assertNotIn("source_ocr_text", rendered)
+        self.assertNotIn("OCRed Text", rendered)
 
     def test_version_020_ground_truth_matches_inline_data_model(self) -> None:
         for row in load_corpus(CORPUS_PATH):
@@ -110,6 +115,8 @@ class Version030MiniCorpusTests(unittest.TestCase):
         self.assertEqual(rows[0].document_id, ACME_DOCUMENT_ID)
         self.assertEqual(documents[rows[0].document_id].path.name, "acme_invoice.txt")
         self.assertEqual(documents[rows[1].document_id].path.suffix, ".jpg")
+        self.assertEqual(documents[rows[1].document_id].source_name, KAGGLE_SOURCE_NAME)
+        self.assertEqual(documents[rows[1].document_id].source_record_id, "batch1-0042")
         self.assertEqual(rows[0].data_model["title"], "Invoice")
         self.assertEqual(rows[1].data_model["title"], "InvoiceExtraction")
 

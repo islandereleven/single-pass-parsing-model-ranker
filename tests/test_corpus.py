@@ -25,6 +25,17 @@ MISSING_CORPUS_ID = "8f2d5d98-9db0-41fa-b1b3-4a7fb95eb781"
 MISSING_DOCUMENT_ID = "f2169cf3-bf4d-4f14-8890-bf69517bff89"
 
 
+def copy_fixture(temp_root: Path) -> Path:
+    copied_corpus = temp_root / "corpora" / "0.1.0.json"
+    copied_corpora = temp_root / "corpora" / "corpora.json"
+    copied_documents = temp_root / "documents"
+    copied_corpus.parent.mkdir(parents=True)
+    shutil.copy2(EXAMPLE_CORPUS, copied_corpus)
+    shutil.copy2(EXAMPLE_CORPORA, copied_corpora)
+    shutil.copytree(EXAMPLE_DOCUMENTS, copied_documents)
+    return copied_corpus
+
+
 class TestCaseLoadingTests(unittest.TestCase):
     def test_loads_example_corpus_table(self) -> None:
         rows = load_corpus(EXAMPLE_CORPUS)
@@ -41,6 +52,8 @@ class TestCaseLoadingTests(unittest.TestCase):
         self.assertNotIn("data_model_id", raw_corpus[0])
         self.assertIsInstance(raw_documents, list)
         self.assertEqual(raw_documents[0]["document_id"], str(DOCUMENT_ID))
+        self.assertEqual(raw_documents[0]["source_name"], "ACME Invoice Fixture")
+        self.assertEqual(raw_documents[0]["source_record_id"], "acme_invoice")
 
         row = rows[0]
         self.assertEqual(row.corpus_id, CORPUS_ID)
@@ -70,13 +83,7 @@ class TestCaseLoadingTests(unittest.TestCase):
     def test_rejects_non_object_row_data_models(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
-            copied_corpus = temp_root / "corpora" / "0.1.0.json"
-            copied_corpora = temp_root / "corpora" / "corpora.json"
-            copied_documents = temp_root / "documents"
-            copied_corpus.parent.mkdir(parents=True)
-            shutil.copy2(EXAMPLE_CORPUS, copied_corpus)
-            shutil.copy2(EXAMPLE_CORPORA, copied_corpora)
-            shutil.copytree(EXAMPLE_DOCUMENTS, copied_documents)
+            copied_corpus = copy_fixture(temp_root)
 
             table = json.loads(copied_corpus.read_text(encoding="utf-8"))
             table[0]["data_model"] = {"type": "array", "items": {"type": "string"}}
@@ -88,13 +95,8 @@ class TestCaseLoadingTests(unittest.TestCase):
     def test_rejects_fixed_document_checksum_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
-            copied_corpus = temp_root / "corpora" / "0.1.0.json"
-            copied_corpora = temp_root / "corpora" / "corpora.json"
+            copied_corpus = copy_fixture(temp_root)
             copied_documents = temp_root / "documents"
-            copied_corpus.parent.mkdir(parents=True)
-            shutil.copy2(EXAMPLE_CORPUS, copied_corpus)
-            shutil.copy2(EXAMPLE_CORPORA, copied_corpora)
-            shutil.copytree(EXAMPLE_DOCUMENTS, copied_documents)
 
             document = copied_documents / "acme_invoice.txt"
             edited = document.read_text(encoding="utf-8") + "\nUnexpected edit.\n"
@@ -106,13 +108,7 @@ class TestCaseLoadingTests(unittest.TestCase):
     def test_rejects_rows_that_reference_unknown_documents(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
-            copied_corpus = temp_root / "corpora" / "0.1.0.json"
-            copied_corpora = temp_root / "corpora" / "corpora.json"
-            copied_documents = temp_root / "documents"
-            copied_corpus.parent.mkdir(parents=True)
-            shutil.copy2(EXAMPLE_CORPUS, copied_corpus)
-            shutil.copy2(EXAMPLE_CORPORA, copied_corpora)
-            shutil.copytree(EXAMPLE_DOCUMENTS, copied_documents)
+            copied_corpus = copy_fixture(temp_root)
 
             table = json.loads(copied_corpus.read_text(encoding="utf-8"))
             table[0]["document_id"] = MISSING_DOCUMENT_ID
@@ -124,13 +120,7 @@ class TestCaseLoadingTests(unittest.TestCase):
     def test_rejects_rows_that_reference_unknown_corpora(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
-            copied_corpus = temp_root / "corpora" / "0.1.0.json"
-            copied_corpora = temp_root / "corpora" / "corpora.json"
-            copied_documents = temp_root / "documents"
-            copied_corpus.parent.mkdir(parents=True)
-            shutil.copy2(EXAMPLE_CORPUS, copied_corpus)
-            shutil.copy2(EXAMPLE_CORPORA, copied_corpora)
-            shutil.copytree(EXAMPLE_DOCUMENTS, copied_documents)
+            copied_corpus = copy_fixture(temp_root)
 
             table = json.loads(copied_corpus.read_text(encoding="utf-8"))
             table[0]["corpus_id"] = MISSING_CORPUS_ID

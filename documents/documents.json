@@ -2,106 +2,148 @@
   {
     "document_id": "2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9",
     "path": "acme_invoice.txt",
+    "source_name": "ACME Invoice Fixture",
+    "source_record_id": "acme_invoice",
     "sha256": "953565bb29359f6587de74dadaa3b1ff32cd35b6f2b4d979dcbfe052da9a6eec"
   },
   {
     "document_id": "09b02771-1ecc-40f1-b92d-fff899427b24",
     "path": "invoice-batch-1-sample-20-v0.1/09b02771-1ecc-40f1-b92d-fff899427b24.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1317",
     "sha256": "9d5cc0d46504e198eb6802e3b53a939faccbb2fbf2ad190e3b542972b5cf4101"
   },
   {
     "document_id": "0b457399-cc9e-4f8a-bf3b-29aaf27f39a7",
     "path": "invoice-batch-1-sample-20-v0.1/0b457399-cc9e-4f8a-bf3b-29aaf27f39a7.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0164",
     "sha256": "dd32830fb2175750080394034004d6f91d6b1aa16152c788a887515bb57a4cd2"
   },
   {
     "document_id": "0c6677c0-6cae-475c-b4c4-68faa24db4f8",
     "path": "invoice-batch-1-sample-20-v0.1/0c6677c0-6cae-475c-b4c4-68faa24db4f8.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0158",
     "sha256": "5462dc175640904b1154ed9fe25e273e6d810136a41951b1c637e9b7132f4b5f"
   },
   {
     "document_id": "220342b0-4b92-44bc-b327-a83fae6ca929",
     "path": "invoice-batch-1-sample-20-v0.1/220342b0-4b92-44bc-b327-a83fae6ca929.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0385",
     "sha256": "4a7e5a65fbf362aad251df1f3d2d12a94b90341042d5211c4f56c6bdc2eece63"
   },
   {
     "document_id": "245ee874-36c6-40a0-9ec1-461b833cd2b9",
     "path": "invoice-batch-1-sample-20-v0.1/245ee874-36c6-40a0-9ec1-461b833cd2b9.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1384",
     "sha256": "4b2bce593ded2f9b0cab4509269433c17462f35f4a218c4fa49161dffdfc9415"
   },
   {
     "document_id": "2802cc66-9dd8-476b-a636-6bf3398dce2f",
     "path": "invoice-batch-1-sample-20-v0.1/2802cc66-9dd8-476b-a636-6bf3398dce2f.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0575",
     "sha256": "cf4f7de9781edab87d6c9e6927ea72fc5a209264e573e2d5fc4bd866390deacc"
   },
   {
     "document_id": "2b57c357-9cd1-40b5-899d-2d9cb5f4ba29",
     "path": "invoice-batch-1-sample-20-v0.1/2b57c357-9cd1-40b5-899d-2d9cb5f4ba29.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1117",
     "sha256": "3ac7776322f618cab959ac6875a3c4d03282e96c46731f332a1db26f0d016d3e"
   },
   {
     "document_id": "34f1a87d-062c-4e37-a03b-ee99c1600665",
     "path": "invoice-batch-1-sample-20-v0.1/34f1a87d-062c-4e37-a03b-ee99c1600665.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1350",
     "sha256": "5f35de42f0c7b2ffceb9faf7949f43a7bf76f851c1743fa77fb4bdd1f0c0e76d"
   },
   {
     "document_id": "54c47273-7158-44fd-94a2-a369478943e9",
     "path": "invoice-batch-1-sample-20-v0.1/54c47273-7158-44fd-94a2-a369478943e9.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0856",
     "sha256": "4e543784ee29b7a3679a4e37841120bd1bbc071ed79f063e85d464ef101ba853"
   },
   {
     "document_id": "568fdd8d-6369-45be-8929-6da46f62b2c5",
     "path": "invoice-batch-1-sample-20-v0.1/568fdd8d-6369-45be-8929-6da46f62b2c5.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0273",
     "sha256": "b95fe6ea787d4e509f4ffd0d04325f41415613fd3de5a8d5906abbb3340d6f31"
   },
   {
     "document_id": "597412fc-5916-4958-965c-0f6dc108db80",
     "path": "invoice-batch-1-sample-20-v0.1/597412fc-5916-4958-965c-0f6dc108db80.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1435",
     "sha256": "7ceb93d4786db02bafc0e69500b7f2f92bd21af0be7ae20fce0cacea1b407c1f"
   },
   {
     "document_id": "5e2238be-028b-4bcf-b00b-32effaa781cf",
     "path": "invoice-batch-1-sample-20-v0.1/5e2238be-028b-4bcf-b00b-32effaa781cf.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0472",
     "sha256": "fcc666c55f109f925defb989e5f304d62ec5272a8c7de579cab4198b0133844c"
   },
   {
     "document_id": "68dfd5f9-1f40-49ee-a16c-ad55cc52971e",
     "path": "invoice-batch-1-sample-20-v0.1/68dfd5f9-1f40-49ee-a16c-ad55cc52971e.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1061",
     "sha256": "de563af4734dd4c0a70b8f39718dbe4581add7e719f18062b60ce59c64635bc3"
   },
   {
     "document_id": "9c924967-7894-48ca-a488-fb786d0d7be1",
     "path": "invoice-batch-1-sample-20-v0.1/9c924967-7894-48ca-a488-fb786d0d7be1.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0042",
     "sha256": "3469ef8f7eab10fd1f1fb3651ec767a903125b91734f165a7782dbf3dec0fae9"
   },
   {
     "document_id": "b86ebcf3-cbc3-4fc8-b0fc-66995050b587",
     "path": "invoice-batch-1-sample-20-v0.1/b86ebcf3-cbc3-4fc8-b0fc-66995050b587.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0088",
     "sha256": "d6349944feb20f7296e4d35705986339593bf0580c0e97c88dfd865d9193c479"
   },
   {
     "document_id": "c91d50ff-0b95-4c9f-91cf-f0cd6d7da8d8",
     "path": "invoice-batch-1-sample-20-v0.1/c91d50ff-0b95-4c9f-91cf-f0cd6d7da8d8.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0299",
     "sha256": "c0347b6e225dd1a7b6d7d3efd96a84255e9c348f2b456a0afaec569adff09839"
   },
   {
     "document_id": "dcf4adb8-7099-4067-86ce-eb3f4f6ff211",
     "path": "invoice-batch-1-sample-20-v0.1/dcf4adb8-7099-4067-86ce-eb3f4f6ff211.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1119",
     "sha256": "afee800a9a44ea02f098113dfa0c4fa63cfb46fbc119612a992d8270ccdde2ea"
   },
   {
     "document_id": "e0b3cb6f-bf6f-455b-9c34-644786d75474",
     "path": "invoice-batch-1-sample-20-v0.1/e0b3cb6f-bf6f-455b-9c34-644786d75474.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-0246",
     "sha256": "72824c44ee03965204a797232e411b804f0f2466312435d45f65d71e4d4683c2"
   },
   {
     "document_id": "ef793c38-dd17-4887-82f8-5ce91a3f1d08",
     "path": "invoice-batch-1-sample-20-v0.1/ef793c38-dd17-4887-82f8-5ce91a3f1d08.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1001",
     "sha256": "b06e57ed634685922146f0dd4b21bd6f556890938fa5f773c0a6a9449dd04179"
   },
   {
     "document_id": "fbb6aac3-cdcd-4e39-82b7-e7228871e2f6",
     "path": "invoice-batch-1-sample-20-v0.1/fbb6aac3-cdcd-4e39-82b7-e7228871e2f6.jpg",
+    "source_name": "High-Quality Invoice Images for OCR",
+    "source_record_id": "batch1-1275",
     "sha256": "a20b6659ed7c43501fc0be2d17590a3c866e046a27aa85f079b03de032d64a66"
   }
 ]

@@ -126,8 +126,9 @@ Phase E checklist:
 
 - [x] 1. Corpus growth: add a larger local corpus and register its fixed documents.
 - [x] 2. Conversion path for non-text document rows.
-- [ ] 3. File-backed run storage for repeatable local batches.
-- [ ] 4. Batch execution ergonomics for larger local runs.
+- [x] 3. Structural data-source disclosure for public, generated, and hand-authored corpora.
+- [ ] 4. File-backed run storage for repeatable local batches.
+- [ ] 5. Batch execution ergonomics for larger local runs.
 
 Phase E progress:
 
@@ -141,6 +142,7 @@ Phase E progress:
 - Added per-attempt `document_text_sha256` for the exact text sent to the model.
 - Added `FieldComparison` rows for field-level scoring evidence.
 - Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
+- Added document-level source names and [../DATA_NOTICE.md](../DATA_NOTICE.md) for provenance and license disclosure.
 
 Local smoke examples on `corpora/0.3.0.json`:
 

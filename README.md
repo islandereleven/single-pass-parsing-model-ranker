@@ -33,6 +33,8 @@ Current phase: **Phase E operations**.
 
 The mission concept, Phase A requirements, Phase B architecture, Phase C prototype, and Phase D core verification are set. The current work is Phase E: larger corpora, batch readiness, and operational plumbing. See [docs/phase-status.md](docs/phase-status.md) for the live phase readout.
 
+Each document records its source name in `documents/documents.json`; [DATA_NOTICE.md](DATA_NOTICE.md) provides the corresponding provenance and license disclosure.
+
 ### Pre-Phase A: Mission Concept
 
 Define the ranking mission, target audience, and first experiment class.

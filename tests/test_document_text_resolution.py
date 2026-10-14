@@ -17,6 +17,9 @@ from single_pass_parsing_ranker import document_text_resolution as resolution
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS_PATH = PROJECT_ROOT / "documents" / "documents.json"
 ACME_DOCUMENT_ID = UUID("2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9")
+TEST_SOURCE = {
+    "source_name": "Test Source",
+}
 
 
 class DocumentTextResolutionTests(unittest.TestCase):
@@ -39,6 +42,7 @@ class DocumentTextResolutionTests(unittest.TestCase):
             / "documents"
             / "invoice-batch-1-sample-20-v0.1"
             / "9c924967-7894-48ca-a488-fb786d0d7be1.jpg",
+            **TEST_SOURCE,
         )
         blocks = (resolution.LayoutTextBlock(text="Invoice no: 86736203", page=1, x0=10, y0=20, x1=100, y1=30),)
 
@@ -57,6 +61,7 @@ class DocumentTextResolutionTests(unittest.TestCase):
         document = Document(
             document_id=UUID("11111111-1111-4111-8111-111111111111"),
             path=PROJECT_ROOT / "documents" / "sample.pdf",
+            **TEST_SOURCE,
         )
         blocks = (resolution.LayoutTextBlock(text="Native PDF invoice text is present", page=1),)
 
@@ -77,6 +82,7 @@ class DocumentTextResolutionTests(unittest.TestCase):
         document = Document(
             document_id=UUID("22222222-2222-4222-8222-222222222222"),
             path=PROJECT_ROOT / "documents" / "scanned.pdf",
+            **TEST_SOURCE,
         )
         blocks = (resolution.LayoutTextBlock(text="OCR PDF invoice text", page=1),)
 

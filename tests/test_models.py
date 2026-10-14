@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from single_pass_parsing_ranker import (
     AttemptStatus,
     DataModelSchema,
+    Document,
     FieldComparison,
     FieldComparisonMethod,
     FieldEvaluation,
@@ -22,6 +23,7 @@ from single_pass_parsing_ranker import (
 CORPUS_ID = UUID("3d2f2e84-7f80-4d8d-a243-3b2d273d4a04")
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 TEST_CASE_ID = UUID("5c9c0d9b-a412-4f0a-9cc6-fdb164b2c1f5")
+DOCUMENT_ID = UUID("2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9")
 
 
 class ModelTests(unittest.TestCase):
@@ -109,6 +111,17 @@ class ModelTests(unittest.TestCase):
         evaluation = FieldEvaluation()
 
         self.assertEqual(evaluation.comparison, FieldComparisonMethod.EXACT)
+
+    def test_document_records_source_disclosure(self) -> None:
+        document = Document(
+            document_id=DOCUMENT_ID,
+            path="acme_invoice.txt",
+            source_name="ACME Invoice Fixture",
+            source_record_id="acme_invoice",
+        )
+
+        self.assertEqual(document.source_name, "ACME Invoice Fixture")
+        self.assertEqual(document.source_record_id, "acme_invoice")
 
     def test_data_model_schema_rejects_unknown_comparison_method(self) -> None:
         with self.assertRaises(ValidationError):

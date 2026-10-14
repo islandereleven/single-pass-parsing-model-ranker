@@ -79,6 +79,8 @@ class DataModelSchema(RootModel[JsonObject]):
 class Document(StrictModel):
     document_id: UUID
     path: Path
+    source_name: str = Field(min_length=1)
+    source_record_id: str | None = None
     sha256: str | None = None
 
 
