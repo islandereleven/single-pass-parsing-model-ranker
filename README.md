@@ -124,6 +124,7 @@ single-pass-parsing-model-ranker/
 ├── docs/
 │   ├── evaluator-architecture.md
 │   ├── evaluation-contract.md
+│   ├── logging.md
 │   ├── phase-d-verification.md
 │   └── phase-status.md
 ├── documents/
@@ -143,6 +144,7 @@ single-pass-parsing-model-ranker/
 │       ├── llm.py
 │       ├── models.py
 │       ├── normalize.py
+│       ├── observability.py
 │       ├── prompts.py
 │       ├── runner.py
 │       ├── scoring.py
@@ -237,6 +239,20 @@ poetry run single-pass-ranker run \
 The runner defaults to `--layout-to-text-strategy native_layout_to_text` and `--ocr-strategy pytesseract`. PyTesseract requires the `tesseract` system binary to be installed locally.
 
 Every CLI run appends results to `runs/runs.jsonl`, `runs/run_test_cases.jsonl`, and `runs/field_comparisons.jsonl`. Use `--output-dir PATH` to store them elsewhere. The `runs/` directory is ignored by Git.
+
+## Logging
+
+The CLI writes operational logs to `stderr`, independently of result output on `stdout`. Logs default to human-readable `INFO` output. Cloud deployments can emit one JSON object per line:
+
+```bash
+SPPR_LOG_FORMAT=json SPPR_LOG_LEVEL=INFO \
+  poetry run single-pass-ranker run \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus corpora/0.1.0.json
+```
+
+The package remains vendor-neutral. A deployment-level Datadog Agent, OpenTelemetry Collector, or other router can filter and enrich these events before forwarding them. See [docs/logging.md](docs/logging.md) for the event contract, safe-field policy, and recommended forwarding allowlist.
 
 Print raw JSON rows instead:
 

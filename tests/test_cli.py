@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch
 
@@ -5,6 +6,11 @@ from single_pass_parsing_ranker import cli
 
 
 class CLITests(unittest.TestCase):
+    def setUp(self) -> None:
+        configure_logging_patcher = patch.object(cli, "configure_logging")
+        self.configure_logging = configure_logging_patcher.start()
+        self.addCleanup(configure_logging_patcher.stop)
+
     def test_run_command_calls_evaluator(self) -> None:
         calls = []
 
@@ -109,6 +115,45 @@ class CLITests(unittest.TestCase):
             )
 
         self.assertEqual(calls[0]["output_dir"], "artifacts/local-run")
+
+    def test_run_command_configures_logging_from_flags(self) -> None:
+        with patch.object(cli, "run_evaluation"):
+            cli.main(
+                [
+                    "run",
+                    "--model",
+                    "gemini/gemini-2.5-flash",
+                    "--corpus",
+                    "corpora/0.1.0.json",
+                    "--log-level",
+                    "warning",
+                    "--log-format",
+                    "json",
+                ]
+            )
+
+        self.configure_logging.assert_called_once_with(level="WARNING", log_format="json")
+
+    def test_run_command_uses_logging_environment_defaults(self) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {"SPPR_LOG_LEVEL": "error", "SPPR_LOG_FORMAT": "json"},
+                clear=False,
+            ),
+            patch.object(cli, "run_evaluation"),
+        ):
+            cli.main(
+                [
+                    "run",
+                    "--model",
+                    "gemini/gemini-2.5-flash",
+                    "--corpus",
+                    "corpora/0.1.0.json",
+                ]
+            )
+
+        self.configure_logging.assert_called_once_with(level="ERROR", log_format="json")
 
 
 if __name__ == "__main__":

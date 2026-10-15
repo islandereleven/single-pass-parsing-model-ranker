@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
+import os
 
 from single_pass_parsing_ranker import LayoutToTextStrategy, OcrStrategy, run_evaluation
+from single_pass_parsing_ranker.observability import configure_logging
 from single_pass_parsing_ranker.runner import OutputFormat
 
 
@@ -41,10 +43,25 @@ def main(argv: Sequence[str] | None = None) -> None:
         default="runs",
         help="Directory for runs.jsonl, run_test_cases.jsonl, and field_comparisons.jsonl.",
     )
+    run_parser.add_argument(
+        "--log-level",
+        choices=("DEBUG", "INFO", "WARNING", "ERROR"),
+        default=os.environ.get("SPPR_LOG_LEVEL", "INFO").upper(),
+        type=str.upper,
+        help="Package log threshold (default: SPPR_LOG_LEVEL or INFO).",
+    )
+    run_parser.add_argument(
+        "--log-format",
+        choices=("human", "json"),
+        default=os.environ.get("SPPR_LOG_FORMAT", "human").lower(),
+        type=str.lower,
+        help="Package log format (default: SPPR_LOG_FORMAT or human).",
+    )
 
     args = parser.parse_args(argv)
 
     if args.command == "run":
+        configure_logging(level=args.log_level, log_format=args.log_format)
         run_evaluation(
             model=args.model,
             provider=args.provider,

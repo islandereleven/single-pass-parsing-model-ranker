@@ -183,6 +183,14 @@ Reporting may choose:
 
 Those policies are outside the core evaluator.
 
+## Operational Logging Boundary
+
+The evaluator emits a small lifecycle-event vocabulary through Python's standard logging module. CLI logs go to `stderr`; readable or JSONL result rows remain on `stdout`. Logging does not change persisted result schemas.
+
+The package owns stable event names, severity, and explicitly selected safe fields. It does not own log shipping, sampling, deployment tags, credentials, or vendor SDKs. In a cloud deployment, the container runtime should expose JSON logs to a Datadog Agent, OpenTelemetry Collector, or similar router. That deployment layer can allowlist events, enrich them with environment and release tags, and forward the selected records to Datadog.
+
+The contract and initial forwarding policy are documented in [logging.md](logging.md).
+
 ## Implemented Package Boundaries
 
 ```text
@@ -192,6 +200,7 @@ document_text_resolution.py # document-to-model-text resolution
 prompts.py       # final call assembly from row prompt, document text, data model
 llm.py           # LiteLLM call boundary and response metadata extraction
 normalize.py     # Pydantic-compatible data-model normalization
+observability.py # human/JSON lifecycle-event formatting and package logger setup
 scoring.py       # field-level comparison scoring after normalization
 storage.py       # print-backed JSON row emission for runs and run_test_cases
 runner.py        # sequential evaluator orchestration
@@ -206,6 +215,7 @@ Design boundaries:
 - `llm.py` does not score outputs.
 - `scoring.py` does not know about provider responses.
 - `storage.py` owns result row emission for `runs` and `run_test_cases`; reading is a reporting/resume concern for later.
+- `observability.py` owns the vendor-neutral log contract; deployment owns collection and forwarding.
 - `runner.py` coordinates loading, prompting, calling, normalization, scoring, and result row emission.
 - `cli.py` only maps command-line arguments into `run_evaluation`.
 - Aggregation, ranking, and comparison reporting live outside the core package.

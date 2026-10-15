@@ -6,8 +6,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
+import logging
 import os
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
@@ -42,6 +44,7 @@ from single_pass_parsing_ranker.normalize import (
     normalize_json_value,
     parse_json_output,
 )
+from single_pass_parsing_ranker.observability import log_event
 from single_pass_parsing_ranker.prompts import build_prompt
 from single_pass_parsing_ranker.scoring import (
     field_comparisons,
@@ -55,6 +58,8 @@ class RunnerError(RuntimeError):
 
 
 OutputFormat = Literal["pretty", "jsonl"]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 _SECRET_SETTING_KEYS = {
@@ -121,11 +126,27 @@ def run_evaluation(
         layout_to_text_strategy=layout_to_text_strategy,
         ocr_strategy=ocr_strategy,
     )
+    run_started = perf_counter()
+    attempted = 0
+    scored = 0
+    zero_score = 0
+    failed = 0
+
+    _log_run_started(run, total_cases=len(rows))
     _emit_run_start(run, output_format)
 
     run_status = RunStatus.COMPLETED
     run_failure_reason: FailureReason | None = None
     for index, test_case in enumerate(rows, start=1):
+        case_started = perf_counter()
+        attempted += 1
+        _log_case_started(
+            run,
+            test_case,
+            document=documents[test_case.document_id],
+            index=index,
+            total=len(rows),
+        )
         result = _run_test_case(
             run=run,
             test_case=test_case,
@@ -140,8 +161,22 @@ def run_evaluation(
             index=index,
             total=len(rows),
         )
+        _log_case_finished(
+            run,
+            test_case,
+            document=documents[test_case.document_id],
+            result=result,
+            index=index,
+            total=len(rows),
+            duration_ms=_elapsed_ms(case_started),
+        )
 
-        if result.row.status == AttemptStatus.FAILED:
+        if result.row.status == AttemptStatus.SCORED:
+            scored += 1
+        elif result.row.status == AttemptStatus.ZERO_SCORE:
+            zero_score += 1
+        else:
+            failed += 1
             run_status = RunStatus.FAILED
             run_failure_reason = result.row.failure_reason
             break
@@ -154,6 +189,15 @@ def run_evaluation(
         }
     )
     _emit_run(resolved_output_dir, final_run, output_format)
+    _log_run_finished(
+        final_run,
+        attempted=attempted,
+        scored=scored,
+        zero_score=zero_score,
+        failed=failed,
+        skipped=len(rows) - attempted,
+        duration_ms=_elapsed_ms(run_started),
+    )
     return final_run
 
 
@@ -165,6 +209,7 @@ def _run_test_case(
     request_structured_parse: Callable[..., LLMCallResult],
 ) -> _RunTestCaseResult:
     started_at = _utc_now()
+    _log_stage_started(run, test_case, document, stage="document_resolution")
     try:
         resolved_document_text = resolve_document_text(
             document,
@@ -193,6 +238,7 @@ def _run_test_case(
         data_model=test_case.data_model,
     )
 
+    _log_stage_started(run, test_case, document, stage="llm_request")
     try:
         llm_result = request_structured_parse(
             model=run.model,
@@ -342,6 +388,146 @@ def _document_registry_path(corpus_path: Path, document_registry_path: str | Pat
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _elapsed_ms(started: float) -> int:
+    return max(0, round((perf_counter() - started) * 1000))
+
+
+def _run_log_context(run: Run) -> dict[str, Any]:
+    return {
+        "run_id": run.run_id,
+        "provider": run.provider,
+        "model": run.model,
+        "corpus_id": run.corpus_id,
+    }
+
+
+def _log_run_started(run: Run, *, total_cases: int) -> None:
+    log_event(
+        _LOGGER,
+        logging.INFO,
+        "run.started",
+        "Evaluation run started",
+        **_run_log_context(run),
+        total_cases=total_cases,
+        layout_to_text_strategy=run.layout_to_text_strategy,
+        ocr_strategy=run.ocr_strategy,
+    )
+
+
+def _log_case_started(
+    run: Run,
+    test_case: TestCase,
+    *,
+    document: Document,
+    index: int,
+    total: int,
+) -> None:
+    log_event(
+        _LOGGER,
+        logging.INFO,
+        "case.started",
+        "Evaluation case started",
+        **_run_log_context(run),
+        test_case_id=test_case.test_case_id,
+        document_id=document.document_id,
+        case_index=index,
+        total_cases=total,
+    )
+
+
+def _log_stage_started(
+    run: Run,
+    test_case: TestCase,
+    document: Document,
+    *,
+    stage: str,
+) -> None:
+    stage_context = {}
+    if stage == "document_resolution":
+        stage_context = {
+            "layout_to_text_strategy": run.layout_to_text_strategy,
+            "ocr_strategy": run.ocr_strategy,
+        }
+
+    log_event(
+        _LOGGER,
+        logging.INFO,
+        "stage.started",
+        "Evaluation stage started",
+        **_run_log_context(run),
+        test_case_id=test_case.test_case_id,
+        document_id=document.document_id,
+        stage=stage,
+        **stage_context,
+    )
+
+
+def _log_case_finished(
+    run: Run,
+    test_case: TestCase,
+    *,
+    document: Document,
+    result: _RunTestCaseResult,
+    index: int,
+    total: int,
+    duration_ms: int,
+) -> None:
+    row = result.row
+    level = {
+        AttemptStatus.SCORED: logging.INFO,
+        AttemptStatus.ZERO_SCORE: logging.INFO,
+        AttemptStatus.FAILED: logging.ERROR,
+    }[row.status]
+    mismatch_count = sum(not comparison.matched for comparison in result.field_comparisons)
+    log_event(
+        _LOGGER,
+        level,
+        "case.finished",
+        "Evaluation case completed",
+        **_run_log_context(run),
+        test_case_id=test_case.test_case_id,
+        document_id=document.document_id,
+        case_index=index,
+        total_cases=total,
+        outcome=row.status,
+        failure_reason=row.failure_reason,
+        score=row.score,
+        duration_ms=duration_ms,
+        latency_ms=row.latency_ms,
+        total_tokens=row.total_tokens,
+        estimated_cost_usd=row.estimated_cost_usd,
+        mismatch_count=mismatch_count,
+    )
+
+
+def _log_run_finished(
+    run: Run,
+    *,
+    attempted: int,
+    scored: int,
+    zero_score: int,
+    failed: int,
+    skipped: int,
+    duration_ms: int,
+) -> None:
+    level = logging.ERROR if run.status == RunStatus.FAILED else logging.INFO
+    log_event(
+        _LOGGER,
+        level,
+        "run.finished",
+        "Evaluation run completed",
+        **_run_log_context(run),
+        outcome=run.status,
+        failure_reason=run.failure_reason,
+        attempted=attempted,
+        scored=scored,
+        zero_score=zero_score,
+        failed=failed,
+        skipped=skipped,
+        duration_ms=duration_ms,
+    )
 
 
 def _validate_output_format(output_format: str) -> None:
