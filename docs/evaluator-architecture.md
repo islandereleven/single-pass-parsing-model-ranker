@@ -45,9 +45,9 @@ Initial output storage is intentionally thin:
 
 - print readable run progress/results to the terminal
 - optionally print raw JSONL rows for `runs` and `run_test_cases`
-- route result rows through a storage boundary for `runs` and `run_test_cases`
+- collect result rows for one run and write one immutable local bundle at completion
 
-Later, those same rows can be copied into the islandereleven.com datalake. The evaluator should not depend on the datalake for the first prototype.
+Each bundle lives under `run_id=<uuid>/` and contains `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`. Detail files are written first and `run.json` is written last as the completion marker. Later, the same bundle contract can target object storage without changing result schemas.
 
 The `runs` table records run identity, configuration, status, and reproducibility metadata. It does not store aggregate scoring or cost metrics.
 
@@ -202,7 +202,7 @@ llm.py           # LiteLLM call boundary and response metadata extraction
 normalize.py     # Pydantic-compatible data-model normalization
 observability.py # human/JSON lifecycle-event formatting and package logger setup
 scoring.py       # field-level comparison scoring after normalization
-storage.py       # print-backed JSON row emission for runs and run_test_cases
+storage.py       # immutable per-run result bundle writes
 runner.py        # sequential evaluator orchestration
 cli.py           # thin argparse command wrapper
 ```
@@ -214,7 +214,7 @@ Design boundaries:
 - `prompts.py` does not call models.
 - `llm.py` does not score outputs.
 - `scoring.py` does not know about provider responses.
-- `storage.py` owns result row emission for `runs` and `run_test_cases`; reading is a reporting/resume concern for later.
+- `storage.py` owns immutable per-run bundle writes; reading is a reporting/resume concern for later.
 - `observability.py` owns the vendor-neutral log contract; deployment owns collection and forwarding.
 - `runner.py` coordinates loading, prompting, calling, normalization, scoring, and result row emission.
 - `cli.py` only maps command-line arguments into `run_evaluation`.

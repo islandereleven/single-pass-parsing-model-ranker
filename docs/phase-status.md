@@ -143,7 +143,7 @@ Phase E progress:
 - Added `FieldComparison` rows for field-level scoring evidence.
 - Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
 - Added document-level source names and [../DATA_NOTICE.md](../DATA_NOTICE.md) for provenance and license disclosure.
-- Added append-only local JSONL storage for runs, test-case results, and field-comparison evidence.
+- Added immutable local run bundles containing the final run, test-case results, and field-comparison evidence.
 
 Local smoke examples on `corpora/0.3.0.json`:
 

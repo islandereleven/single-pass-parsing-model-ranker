@@ -199,7 +199,7 @@ Implemented contract pieces:
 Phase C is complete for the current scope. Pieces now in place:
 
 - Prompt assembly.
-- Readable terminal output, raw JSONL terminal output, and append-only local result storage.
+- Readable terminal output, raw JSONL terminal output, and immutable local result bundles.
 - LiteLLM structured-output call wrapper.
 - Response JSON parsing plus shared JSON Schema normalization for output and ground truth.
 - Field-level exact-match scoring with opt-in fuzzy text comparison.
@@ -209,7 +209,7 @@ Phase C is complete for the current scope. Pieces now in place:
 
 Deferred hardening:
 
-- File-backed JSONL storage for runs and run test cases.
+- Resume/recovery for interrupted runs.
 - Markdown export for publishable summaries.
 
 The current runner resolves documents into model-ready UTF-8 text. Plain `.txt` files pass through unchanged, PDFs use native text extraction first with OCR fallback, and image files use PyTesseract OCR.
@@ -238,7 +238,7 @@ poetry run single-pass-ranker run \
 
 The runner defaults to `--layout-to-text-strategy native_layout_to_text` and `--ocr-strategy pytesseract`. PyTesseract requires the `tesseract` system binary to be installed locally.
 
-Every CLI run appends results to `runs/runs.jsonl`, `runs/run_test_cases.jsonl`, and `runs/field_comparisons.jsonl`. Use `--output-dir PATH` to store them elsewhere. The `runs/` directory is ignored by Git.
+Every CLI run writes one immutable bundle under `runs/run_id=<uuid>/`. The bundle contains `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`; each file is written once after evaluation finishes, with `run.json` written last as the completion marker. Use `--output-dir PATH` to change the bundle root. The `runs/` directory is ignored by Git.
 
 ## Logging
 

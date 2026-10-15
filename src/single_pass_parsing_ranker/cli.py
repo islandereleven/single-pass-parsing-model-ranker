@@ -41,7 +41,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser.add_argument(
         "--output-dir",
         default="runs",
-        help="Directory for runs.jsonl, run_test_cases.jsonl, and field_comparisons.jsonl.",
+        help="Root directory for immutable per-run result bundles.",
     )
     run_parser.add_argument(
         "--log-level",

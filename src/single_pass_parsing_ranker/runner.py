@@ -50,7 +50,7 @@ from single_pass_parsing_ranker.scoring import (
     field_comparisons,
     score_field_comparisons,
 )
-from single_pass_parsing_ranker.storage import append_field_comparison, append_run, append_run_test_case
+from single_pass_parsing_ranker.storage import write_run_bundle
 
 
 class RunnerError(RuntimeError):
@@ -131,6 +131,8 @@ def run_evaluation(
     scored = 0
     zero_score = 0
     failed = 0
+    result_rows: list[RunTestCase] = []
+    comparison_rows: list[FieldComparison] = []
 
     _log_run_started(run, total_cases=len(rows))
     _emit_run_start(run, output_format)
@@ -153,8 +155,9 @@ def run_evaluation(
             document=documents[test_case.document_id],
             request_structured_parse=structured_parse_request,
         )
+        result_rows.append(result.row)
+        comparison_rows.extend(comparison for comparison in result.field_comparisons if not comparison.matched)
         _emit_run_test_case(
-            resolved_output_dir,
             result.row,
             result.field_comparisons,
             output_format,
@@ -188,7 +191,9 @@ def run_evaluation(
             "ended_at": _utc_now(),
         }
     )
-    _emit_run(resolved_output_dir, final_run, output_format)
+    if resolved_output_dir is not None:
+        write_run_bundle(resolved_output_dir, final_run, result_rows, comparison_rows)
+    _emit_run(final_run, output_format)
     _log_run_finished(
         final_run,
         attempted=attempted,
@@ -552,7 +557,6 @@ def _emit_run_start(run: Run, output_format: OutputFormat) -> None:
 
 
 def _emit_run_test_case(
-    output_dir: Path | None,
     row: RunTestCase,
     comparisons: tuple[FieldComparison, ...],
     output_format: OutputFormat,
@@ -561,11 +565,6 @@ def _emit_run_test_case(
     total: int,
 ) -> None:
     mismatches = tuple(comparison for comparison in comparisons if not comparison.matched)
-    if output_dir is not None:
-        append_run_test_case(output_dir / "run_test_cases.jsonl", row)
-        for mismatch in mismatches:
-            append_field_comparison(output_dir / "field_comparisons.jsonl", mismatch)
-
     if output_format == "jsonl":
         print(row.model_dump_json())
         for mismatch in mismatches:
@@ -591,10 +590,7 @@ def _emit_run_test_case(
             print(f"      actual: {_format_json_value(mismatch.actual_value, mismatch.actual_present)}")
 
 
-def _emit_run(output_dir: Path | None, run: Run, output_format: OutputFormat) -> None:
-    if output_dir is not None:
-        append_run(output_dir / "runs.jsonl", run)
-
+def _emit_run(run: Run, output_format: OutputFormat) -> None:
     if output_format == "jsonl":
         print(run.model_dump_json())
         return

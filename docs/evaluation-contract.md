@@ -105,7 +105,7 @@ Retries can be added later as a separate evaluation track, but the baseline shou
 
 ## Result Record Shape
 
-The evaluator should emit a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. The first storage sink prints JSON rows; file-backed JSONL can use the same row shapes later.
+The evaluator emits a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. Terminal output may print those rows directly. Local persistence writes one immutable `run_id=<uuid>/` bundle containing `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`. The detail files are written first and `run.json` is written last as the completion marker.
 
 The `runs` row owns:
 

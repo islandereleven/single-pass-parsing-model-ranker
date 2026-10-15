@@ -349,12 +349,12 @@ class RunnerTests(unittest.TestCase):
                         ),
                     )
 
-                run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
-                case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
-                comparison_rows = _read_jsonl(output_dir / "field_comparisons.jsonl", FieldComparison)
+                run_dir = output_dir / f"run_id={RUN_ID}"
+                run_row = Run.model_validate_json((run_dir / "run.json").read_text(encoding="utf-8"))
+                case_rows = _read_jsonl(run_dir / "run_test_cases.jsonl", RunTestCase)
+                comparison_rows = _read_jsonl(run_dir / "field_comparisons.jsonl", FieldComparison)
 
-                self.assertEqual(len(run_rows), 1)
-                self.assertEqual(run_rows[0].status, RunStatus.COMPLETED)
+                self.assertEqual(run_row.status, RunStatus.COMPLETED)
                 self.assertEqual(len(case_rows), 1)
                 self.assertEqual(case_rows[0].status, AttemptStatus.SCORED)
                 self.assertEqual(len(comparison_rows), 1)
@@ -375,11 +375,12 @@ class RunnerTests(unittest.TestCase):
                 structured_parse_request=fake_request,
             )
 
-            run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
-            case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
+            run_dir = output_dir / f"run_id={RUN_ID}"
+            run_row = Run.model_validate_json((run_dir / "run.json").read_text(encoding="utf-8"))
+            case_rows = _read_jsonl(run_dir / "run_test_cases.jsonl", RunTestCase)
 
-        self.assertEqual(run_rows[0].status, RunStatus.FAILED)
-        self.assertEqual(run_rows[0].failure_reason, FailureReason.AUTH_ERROR)
+        self.assertEqual(run_row.status, RunStatus.FAILED)
+        self.assertEqual(run_row.failure_reason, FailureReason.AUTH_ERROR)
         self.assertEqual(case_rows[0].status, AttemptStatus.FAILED)
         self.assertEqual(case_rows[0].failure_reason, FailureReason.AUTH_ERROR)
 
