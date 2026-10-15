@@ -197,7 +197,7 @@ Implemented contract pieces:
 Phase C is complete for the current scope. Pieces now in place:
 
 - Prompt assembly.
-- Readable terminal output plus raw JSONL row emission for `runs` and `run_test_cases`.
+- Readable terminal output, raw JSONL terminal output, and append-only local result storage.
 - LiteLLM structured-output call wrapper.
 - Response JSON parsing plus shared JSON Schema normalization for output and ground truth.
 - Field-level exact-match scoring with opt-in fuzzy text comparison.
@@ -235,6 +235,8 @@ poetry run single-pass-ranker run \
 ```
 
 The runner defaults to `--layout-to-text-strategy native_layout_to_text` and `--ocr-strategy pytesseract`. PyTesseract requires the `tesseract` system binary to be installed locally.
+
+Every CLI run appends results to `runs/runs.jsonl`, `runs/run_test_cases.jsonl`, and `runs/field_comparisons.jsonl`. Use `--output-dir PATH` to store them elsewhere. The `runs/` directory is ignored by Git.
 
 Print raw JSON rows instead:
 

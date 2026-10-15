@@ -328,6 +328,65 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(run_row.failure_reason, FailureReason.DOCUMENT_TEXT_EXTRACTION_ERROR)
         self.assertEqual(len(calls), 1)
 
+    def test_run_evaluation_persists_results_in_both_terminal_formats(self) -> None:
+        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        model_output = dict(test_case.ground_truth)
+        model_output["total"] = 999.0
+
+        for output_format in ("pretty", "jsonl"):
+            with self.subTest(output_format=output_format), tempfile.TemporaryDirectory() as temp_dir:
+                output_dir = Path(temp_dir) / "runs"
+                with redirect_stdout(StringIO()):
+                    run_evaluation(
+                        model="gemini/gemini-2.5-flash",
+                        corpus_path=EXAMPLE_CORPUS,
+                        run_id=RUN_ID,
+                        env_path=None,
+                        output_format=output_format,
+                        output_dir=output_dir,
+                        structured_parse_request=lambda **kwargs: LLMCallResult(
+                            raw_output=json.dumps(model_output)
+                        ),
+                    )
+
+                run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
+                case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
+                comparison_rows = _read_jsonl(output_dir / "field_comparisons.jsonl", FieldComparison)
+
+                self.assertEqual(len(run_rows), 1)
+                self.assertEqual(run_rows[0].status, RunStatus.COMPLETED)
+                self.assertEqual(len(case_rows), 1)
+                self.assertEqual(case_rows[0].status, AttemptStatus.SCORED)
+                self.assertEqual(len(comparison_rows), 1)
+                self.assertEqual(comparison_rows[0].field_path, "total")
+
+    def test_run_evaluation_persists_failed_run(self) -> None:
+        def fake_request(**kwargs):
+            raise LLMCallError("LiteLLM call failed") from AuthenticationError("auth failed")
+
+        with tempfile.TemporaryDirectory() as temp_dir, redirect_stdout(StringIO()):
+            output_dir = Path(temp_dir) / "runs"
+            run_evaluation(
+                model="gemini/gemini-2.5-flash",
+                corpus_path=EXAMPLE_CORPUS,
+                run_id=RUN_ID,
+                env_path=None,
+                output_dir=output_dir,
+                structured_parse_request=fake_request,
+            )
+
+            run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
+            case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
+
+        self.assertEqual(run_rows[0].status, RunStatus.FAILED)
+        self.assertEqual(run_rows[0].failure_reason, FailureReason.AUTH_ERROR)
+        self.assertEqual(case_rows[0].status, AttemptStatus.FAILED)
+        self.assertEqual(case_rows[0].failure_reason, FailureReason.AUTH_ERROR)
+
+
+def _read_jsonl(path: Path, model):
+    return [model.model_validate_json(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
 
 if __name__ == "__main__":
     unittest.main()

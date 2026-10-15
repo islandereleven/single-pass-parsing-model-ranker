@@ -83,9 +83,7 @@ def run_evaluation(
     *,
     model: str,
     corpus_path: str | Path,
-    runs_path: str | Path = "runs/runs.jsonl",
-    run_test_cases_path: str | Path = "runs/run_test_cases.jsonl",
-    field_comparisons_path: str | Path = "runs/field_comparisons.jsonl",
+    output_dir: str | Path | None = None,
     provider: str | None = None,
     model_settings: JsonObject | None = None,
     layout_to_text_strategy: LayoutToTextStrategy | str = LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT,
@@ -101,6 +99,7 @@ def run_evaluation(
     settings = dict(model_settings or {})
     _reject_secret_model_settings(settings)
     _validate_output_format(output_format)
+    resolved_output_dir = Path(output_dir) if output_dir is not None else None
 
     corpus_path = Path(corpus_path).resolve()
     rows = load_corpus(
@@ -134,8 +133,7 @@ def run_evaluation(
             request_structured_parse=structured_parse_request,
         )
         _emit_run_test_case(
-            run_test_cases_path,
-            field_comparisons_path,
+            resolved_output_dir,
             result.row,
             result.field_comparisons,
             output_format,
@@ -155,7 +153,7 @@ def run_evaluation(
             "ended_at": _utc_now(),
         }
     )
-    _emit_run(runs_path, final_run, output_format)
+    _emit_run(resolved_output_dir, final_run, output_format)
     return final_run
 
 
@@ -368,8 +366,7 @@ def _emit_run_start(run: Run, output_format: OutputFormat) -> None:
 
 
 def _emit_run_test_case(
-    run_test_cases_path: str | Path,
-    field_comparisons_path: str | Path,
+    output_dir: Path | None,
     row: RunTestCase,
     comparisons: tuple[FieldComparison, ...],
     output_format: OutputFormat,
@@ -378,10 +375,15 @@ def _emit_run_test_case(
     total: int,
 ) -> None:
     mismatches = tuple(comparison for comparison in comparisons if not comparison.matched)
-    if output_format == "jsonl":
-        append_run_test_case(run_test_cases_path, row)
+    if output_dir is not None:
+        append_run_test_case(output_dir / "run_test_cases.jsonl", row)
         for mismatch in mismatches:
-            append_field_comparison(field_comparisons_path, mismatch)
+            append_field_comparison(output_dir / "field_comparisons.jsonl", mismatch)
+
+    if output_format == "jsonl":
+        print(row.model_dump_json())
+        for mismatch in mismatches:
+            print(mismatch.model_dump_json())
         return
 
     print("")
@@ -403,9 +405,12 @@ def _emit_run_test_case(
             print(f"      actual: {_format_json_value(mismatch.actual_value, mismatch.actual_present)}")
 
 
-def _emit_run(path: str | Path, run: Run, output_format: OutputFormat) -> None:
+def _emit_run(output_dir: Path | None, run: Run, output_format: OutputFormat) -> None:
+    if output_dir is not None:
+        append_run(output_dir / "runs.jsonl", run)
+
     if output_format == "jsonl":
-        append_run(path, run)
+        print(run.model_dump_json())
         return
 
     print("")

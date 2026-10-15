@@ -37,6 +37,7 @@ class CLITests(unittest.TestCase):
                     "layout_to_text_strategy": "native_layout_to_text",
                     "ocr_strategy": "pytesseract",
                     "output_format": "pretty",
+                    "output_dir": "runs",
                 }
             ],
         )
@@ -65,6 +66,7 @@ class CLITests(unittest.TestCase):
         self.assertEqual(calls[0]["layout_to_text_strategy"], "native_layout_to_text")
         self.assertEqual(calls[0]["ocr_strategy"], "pytesseract")
         self.assertEqual(calls[0]["output_format"], "jsonl")
+        self.assertEqual(calls[0]["output_dir"], "runs")
 
     def test_run_command_accepts_document_text_strategy_flags(self) -> None:
         calls = []
@@ -89,6 +91,24 @@ class CLITests(unittest.TestCase):
 
         self.assertEqual(calls[0]["layout_to_text_strategy"], "native_layout_to_text")
         self.assertEqual(calls[0]["ocr_strategy"], "pytesseract")
+
+    def test_run_command_accepts_output_directory(self) -> None:
+        calls = []
+
+        with patch.object(cli, "run_evaluation", lambda **kwargs: calls.append(kwargs)):
+            cli.main(
+                [
+                    "run",
+                    "--model",
+                    "gemini/gemini-2.5-flash",
+                    "--corpus",
+                    "corpora/0.1.0.json",
+                    "--output-dir",
+                    "artifacts/local-run",
+                ]
+            )
+
+        self.assertEqual(calls[0]["output_dir"], "artifacts/local-run")
 
 
 if __name__ == "__main__":

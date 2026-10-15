@@ -1,5 +1,5 @@
-from contextlib import redirect_stdout
-from io import StringIO
+from pathlib import Path
+import tempfile
 import unittest
 from uuid import UUID
 
@@ -20,8 +20,7 @@ TEST_CASE_ID = UUID("5c9c0d9b-a412-4f0a-9cc6-fdb164b2c1f5")
 
 
 class StorageTests(unittest.TestCase):
-    def test_append_run_prints_one_json_row(self) -> None:
-        output = StringIO()
+    def test_append_run_creates_parent_directories_and_writes_one_json_row(self) -> None:
         run = Run(
             run_id=RUN_ID,
             model="openai/gpt-4o-mini",
@@ -30,21 +29,22 @@ class StorageTests(unittest.TestCase):
             model_settings={"temperature": 0},
         )
 
-        with redirect_stdout(output):
-            append_run("runs/runs.jsonl", run)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "nested" / "runs.jsonl"
+            append_run(path, run)
 
-        lines = output.getvalue().splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()
+
         self.assertEqual(len(lines), 1)
         restored = Run.model_validate_json(lines[0])
         self.assertEqual(restored.run_id, RUN_ID)
         self.assertEqual(restored.model_settings, {"temperature": 0})
 
-    def test_append_run_test_case_prints_json_rows(self) -> None:
-        output = StringIO()
-
-        with redirect_stdout(output):
+    def test_append_run_test_case_appends_json_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "run_test_cases.jsonl"
             append_run_test_case(
-                "runs/run_test_cases.jsonl",
+                path,
                 RunTestCase(
                     run_id=RUN_ID,
                     test_case_id=TEST_CASE_ID,
@@ -56,7 +56,7 @@ class StorageTests(unittest.TestCase):
                 ),
             )
             append_run_test_case(
-                "runs/run_test_cases.jsonl",
+                path,
                 RunTestCase(
                     run_id=RUN_ID,
                     test_case_id=TEST_CASE_ID,
@@ -66,17 +66,17 @@ class StorageTests(unittest.TestCase):
                 ),
             )
 
-        lines = output.getvalue().splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()
+
         self.assertEqual(len(lines), 2)
         self.assertEqual(RunTestCase.model_validate_json(lines[0]).status, AttemptStatus.SCORED)
         self.assertEqual(RunTestCase.model_validate_json(lines[1]).status, AttemptStatus.ZERO_SCORE)
 
-    def test_append_field_comparison_prints_json_row(self) -> None:
-        output = StringIO()
-
-        with redirect_stdout(output):
+    def test_append_field_comparison_writes_json_row(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "field_comparisons.jsonl"
             append_field_comparison(
-                "runs/field_comparisons.jsonl",
+                path,
                 FieldComparison(
                     run_id=RUN_ID,
                     test_case_id=TEST_CASE_ID,
@@ -88,7 +88,8 @@ class StorageTests(unittest.TestCase):
                 ),
             )
 
-        lines = output.getvalue().splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()
+
         self.assertEqual(len(lines), 1)
         restored = FieldComparison.model_validate_json(lines[0])
         self.assertEqual(restored.field_path, "total")

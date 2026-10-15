@@ -36,6 +36,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         default="pretty",
         help="Terminal output format.",
     )
+    run_parser.add_argument(
+        "--output-dir",
+        default="runs",
+        help="Directory for runs.jsonl, run_test_cases.jsonl, and field_comparisons.jsonl.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -48,6 +53,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             layout_to_text_strategy=args.layout_to_text_strategy,
             ocr_strategy=args.ocr_strategy,
             output_format=args.output_format,
+            output_dir=args.output_dir,
         )
 
 
