@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from pydantic import (
@@ -75,7 +75,7 @@ class DataModelSchema(RootModel[JsonObject]):
         return self
 
     def as_dict(self) -> JsonObject:
-        return self.model_dump()
+        return cast(JsonObject, self.model_dump())
 
 
 class Document(StrictModel):
@@ -253,7 +253,7 @@ def storage_schemas() -> dict[str, JsonObject]:
 def extraction_schema(data_model: JsonObject) -> JsonObject:
     """Return the JSON Schema used for provider calls and value validation."""
 
-    return _strip_evaluation_metadata(DataModelSchema(data_model).as_dict())
+    return cast(JsonObject, _strip_evaluation_metadata(DataModelSchema(data_model).as_dict()))
 
 
 def _validate_evaluation_metadata(value: Any) -> None:

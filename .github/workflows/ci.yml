@@ -32,8 +32,14 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Run tests
-        run: poetry run pytest -q
+      - name: Lint
+        run: poetry run ruff check .
+
+      - name: Type check
+        run: poetry run mypy
+
+      - name: Run tests with coverage
+        run: poetry run pytest -q --cov --cov-report=term-missing
 
       - name: Build package
         run: poetry build

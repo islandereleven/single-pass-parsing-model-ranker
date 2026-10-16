@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from json import JSONDecodeError
+from typing import cast
 
 from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
@@ -26,7 +27,7 @@ def parse_json_output(raw_output: str) -> JsonValue:
     if not raw_output.strip():
         raise JsonParseError("raw_output must not be blank")
     try:
-        return json.loads(raw_output)
+        return cast(JsonValue, json.loads(raw_output))
     except JSONDecodeError as exc:
         raise JsonParseError("raw_output is not valid JSON") from exc
 
