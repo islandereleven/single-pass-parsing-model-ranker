@@ -26,6 +26,10 @@ s3fs = "^2026.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
+ruff = "^0.17.1"
+mypy = "^2.4.0"
+pytest-cov = "^7.1.0"
+types-jsonschema = "^4.26.0.20261006"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -34,3 +38,27 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["pytesseract"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["single_pass_parsing_ranker"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true

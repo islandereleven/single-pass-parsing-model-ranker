@@ -107,15 +107,17 @@ def run_evaluation(
     _reject_secret_model_settings(settings)
     _validate_output_format(output_format)
     resolved_output_dir = UPath(output_dir) if output_dir is not None else None
+    resolved_corpus_path = UPath(corpus_path)
+    resolved_layout_strategy = LayoutToTextStrategy(layout_to_text_strategy)
+    resolved_ocr_strategy = OcrStrategy(ocr_strategy)
 
-    corpus_path = UPath(corpus_path)
     rows = load_corpus(
-        corpus_path,
+        resolved_corpus_path,
         corpus_table_path=corpus_table_path,
         document_registry_path=document_registry_path,
     )
     if not rows:
-        raise RunnerError(f"Corpus has no test cases: {corpus_path}")
+        raise RunnerError(f"Corpus has no test cases: {resolved_corpus_path}")
 
     corpus_id = _single_corpus_id(rows)
     documents = load_documents(document_registry_path)
@@ -125,8 +127,8 @@ def run_evaluation(
         provider=provider,
         corpus_id=corpus_id,
         model_settings=settings,
-        layout_to_text_strategy=layout_to_text_strategy,
-        ocr_strategy=ocr_strategy,
+        layout_to_text_strategy=resolved_layout_strategy,
+        ocr_strategy=resolved_ocr_strategy,
     )
     run_started = perf_counter()
     attempted = 0

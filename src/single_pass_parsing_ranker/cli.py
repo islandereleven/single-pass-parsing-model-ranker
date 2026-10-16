@@ -8,7 +8,6 @@ import os
 
 from single_pass_parsing_ranker import LayoutToTextStrategy, OcrStrategy, run_evaluation
 from single_pass_parsing_ranker.observability import configure_logging
-from single_pass_parsing_ranker.runner import OutputFormat
 
 
 def main(argv: Sequence[str] | None = None) -> None:

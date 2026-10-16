@@ -29,16 +29,18 @@ def request_structured_parse(
     completion_fn: Callable[..., Any] | None = None,
 ) -> LLMCallResult:
     schema_validation_errors: tuple[type[BaseException], ...] = ()
-    if completion_fn is None:
+    resolved_completion_fn = completion_fn
+    if resolved_completion_fn is None:
         try:
-            from litellm import completion as completion_fn
+            from litellm import completion as litellm_completion
             from litellm.exceptions import JSONSchemaValidationError
         except ImportError as exc:
             raise LLMCallError("LiteLLM is not installed") from exc
+        resolved_completion_fn = litellm_completion
         schema_validation_errors = (JSONSchemaValidationError,)
 
     try:
-        response = completion_fn(
+        response = resolved_completion_fn(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             response_format=response_format_for_schema(data_model),
