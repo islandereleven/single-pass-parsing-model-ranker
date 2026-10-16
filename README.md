@@ -249,10 +249,10 @@ The same command can read its corpus and documents from S3 and write the complet
 poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
-  --corpus s3://islandereleven-data-lake-staging/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
-  --documents s3://islandereleven-data-lake-staging/raw/single-pass-parsing-model-ranker/documents/documents.json \
+  --corpus s3://example-bucket/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
+  --documents s3://example-bucket/raw/single-pass-parsing-model-ranker/documents/documents.json \
   --temperature 0 \
-  --output-dir s3://islandereleven-data-lake-staging/silver/single-pass-parsing-model-ranker
+  --output-dir s3://example-bucket/silver/single-pass-parsing-model-ranker
 ```
 
 S3 access uses the standard AWS credential chain. The package does not accept or store AWS credentials.
