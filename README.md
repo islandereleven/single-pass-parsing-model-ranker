@@ -178,7 +178,9 @@ Each `TestCase` row has this shape:
 - `prompt`: reusable extraction instruction for the model attempt.
 - `ground_truth`: expected JSON object for that document and data model.
 
-The fixed document registry is checksum-protected so source document drift is caught before evaluation. Test cases reference corpora and documents by id, while the data model stays inside the corpus row.
+The fixed document registry is checksum-protected so source document drift is caught when a document is read, before its model call. Test cases reference corpora and documents by id, while the data model stays inside the corpus row.
+
+The corpus table and document registry are separate inputs. CLI callers must provide both explicitly; the evaluator does not infer a registry location from the corpus path. Relative document paths inside the registry are resolved from the registry's own directory, while absolute local paths and URIs are used unchanged.
 
 The evaluation semantics are defined in [docs/evaluation-contract.md](docs/evaluation-contract.md). In short: ground truth and model output are normalized through the row's data model, field-level exact match is the default scoring policy, schema-owned fuzzy text comparison can opt in noisy text fields, malformed returned output earns a zero, and infrastructure failures are logged as failed runs.
 
@@ -190,16 +192,16 @@ Implemented contract pieces:
 - `corpora/0.2.0.json` is a 21-row corpus: the existing ACME text case plus 20 source-image invoice cases.
 - `corpora/0.3.0.json` is a 2-row mini corpus for resolver smoke checks: ACME text plus one source-image invoice case.
 - `documents/invoice-batch-1-sample-20-v0.1/` keeps the 20 source `.jpg` invoice images.
-- `src/single_pass_parsing_ranker/data.py` loads the normalized tables, validates references, checks registry links, and detects document SHA-256 drift.
+- `src/single_pass_parsing_ranker/data.py` loads normalized tables from local paths or object-storage URIs and validates registry links.
 - `src/single_pass_parsing_ranker/models.py` defines `Corpus`, `Document`, `TestCase`, run row, run-test-case row, layout/OCR strategy enums, status enums, failure taxonomy, and storage schemas.
-- `src/single_pass_parsing_ranker/document_text_resolution.py` resolves fixed documents into model-ready text and hashes the exact text sent to the prompt.
-- `tests/test_corpus.py` covers the example corpus, document reading, data-model validation, checksum drift, and unknown document references.
+- `src/single_pass_parsing_ranker/document_text_resolution.py` reads each document once, validates its source checksum, resolves it into model-ready text, and hashes the exact text sent to the prompt.
+- `tests/test_corpus.py` covers local and remote table loading, data-model validation, and unknown registry references.
 - `tests/test_models.py` covers the run/result storage models and generated storage schemas.
 
 Phase C is complete for the current scope. Pieces now in place:
 
 - Prompt assembly.
-- Readable terminal output, raw JSONL terminal output, and append-only local result storage.
+- Readable terminal output, raw JSONL terminal output, and immutable local or S3 result bundles.
 - LiteLLM structured-output call wrapper.
 - Response JSON parsing plus shared JSON Schema normalization for output and ground truth.
 - Field-level exact-match scoring with opt-in fuzzy text comparison.
@@ -209,7 +211,7 @@ Phase C is complete for the current scope. Pieces now in place:
 
 Deferred hardening:
 
-- File-backed JSONL storage for runs and run test cases.
+- Resume/recovery for interrupted runs.
 - Markdown export for publishable summaries.
 
 The current runner resolves documents into model-ready UTF-8 text. Plain `.txt` files pass through unchanged, PDFs use native text extraction first with OCR fallback, and image files use PyTesseract OCR.
@@ -233,12 +235,27 @@ poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
+  --documents documents/documents.json \
   --temperature 0
 ```
 
 The runner defaults to `--layout-to-text-strategy native_layout_to_text` and `--ocr-strategy pytesseract`. PyTesseract requires the `tesseract` system binary to be installed locally.
 
-Every CLI run appends results to `runs/runs.jsonl`, `runs/run_test_cases.jsonl`, and `runs/field_comparisons.jsonl`. Use `--output-dir PATH` to store them elsewhere. The `runs/` directory is ignored by Git.
+Every CLI run writes one immutable bundle under `runs/run_id=<uuid>/`. The bundle contains `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`; each file is written once after evaluation finishes, with `run.json` written last as the completion marker. Use `--output-dir` with either a local path or an `s3://` URI to change the bundle root. The local `runs/` directory is ignored by Git.
+
+The same command can read its corpus and documents from S3 and write the completed bundle back to S3:
+
+```bash
+poetry run single-pass-ranker run \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus s3://islandereleven-data-lake-staging/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
+  --documents s3://islandereleven-data-lake-staging/raw/single-pass-parsing-model-ranker/documents/documents.json \
+  --temperature 0 \
+  --output-dir s3://islandereleven-data-lake-staging/silver/single-pass-parsing-model-ranker
+```
+
+S3 access uses the standard AWS credential chain. The package does not accept or store AWS credentials.
 
 ## Logging
 
@@ -249,7 +266,8 @@ SPPR_LOG_FORMAT=json SPPR_LOG_LEVEL=INFO \
   poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
-  --corpus corpora/0.1.0.json
+  --corpus corpora/0.1.0.json \
+  --documents documents/documents.json
 ```
 
 The package remains vendor-neutral. A deployment-level Datadog Agent, OpenTelemetry Collector, or other router can filter and enrich these events before forwarding them. See [docs/logging.md](docs/logging.md) for the event contract, safe-field policy, and recommended forwarding allowlist.
@@ -261,6 +279,7 @@ poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
+  --documents documents/documents.json \
   --temperature 0 \
   --output-format jsonl
 ```
@@ -293,4 +312,4 @@ Phase D verification details live in [docs/phase-d-verification.md](docs/phase-d
 
 Pre-Phase A, Phase A, and Phase B are complete for the current scope: the corpus/document contract, evaluation semantics, and evaluator architecture are documented and represented in code.
 
-Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Phase D verified the core scoring, metadata, CLI, and failure-mode behavior. Phase E has added larger corpora plus OCR/native document text resolution; storage, batch operations, and model-native multimodal handling are next.
+Phase C completed the first runnable evaluator: one run describes one model/corpus pair, with one `run_test_cases` row per corpus case. Phase D verified the core scoring, metadata, CLI, and failure-mode behavior. Phase E has added larger corpora, OCR/native document text resolution, and immutable local/S3 run bundles; batch operations and model-native multimodal handling are next.

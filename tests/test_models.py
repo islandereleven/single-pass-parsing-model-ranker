@@ -123,6 +123,17 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(document.source_name, "ACME Invoice Fixture")
         self.assertEqual(document.source_record_id, "acme_invoice")
 
+    def test_document_path_round_trips_as_uri(self) -> None:
+        document = Document(
+            document_id=DOCUMENT_ID,
+            path="s3://example-bucket/documents/invoice.txt",
+            source_name="Example",
+        )
+
+        restored = Document.model_validate_json(document.model_dump_json())
+
+        self.assertEqual(str(restored.path), "s3://example-bucket/documents/invoice.txt")
+
     def test_data_model_schema_rejects_unknown_comparison_method(self) -> None:
         with self.assertRaises(ValidationError):
             DataModelSchema({

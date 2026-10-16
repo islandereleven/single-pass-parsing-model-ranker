@@ -20,6 +20,7 @@ from single_pass_parsing_ranker import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
+DOCUMENT_REGISTRY = PROJECT_ROOT / "documents" / "documents.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
@@ -80,7 +81,9 @@ class RunnerSchemaVerificationTests(unittest.TestCase):
 
 
 def _valid_ground_truth() -> dict:
-    return deepcopy(load_corpus(EXAMPLE_CORPUS)[0].ground_truth)
+    return deepcopy(
+        load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0].ground_truth
+    )
 
 
 def _run_model_output(value: dict) -> tuple[RunTestCase, Run]:
@@ -93,6 +96,7 @@ def _run_raw_output(raw_output: str) -> tuple[RunTestCase, Run]:
         run_evaluation(
             model="gemini/gemini-2.5-flash",
             corpus_path=EXAMPLE_CORPUS,
+            document_registry_path=DOCUMENT_REGISTRY,
             run_id=RUN_ID,
             env_path=None,
             output_format="jsonl",

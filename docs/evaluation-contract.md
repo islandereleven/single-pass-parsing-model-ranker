@@ -17,7 +17,7 @@ Each attempt is tied to one `TestCase` row:
 
 All `*_id` fields are UUID strings on disk and UUID values in code.
 
-The evaluator resolves `document_id` through the document table. It then resolves the source document into model-ready text using the run's layout-to-text strategy and OCR strategy. Plain text documents pass through unchanged, PDFs use native layout text extraction first with OCR fallback, and image documents use OCR. The evaluator sends the row-level prompt, resolved document text, and inline data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus row and normalized through a Pydantic-compatible model in the evaluator.
+The caller supplies the corpus table and document table as separate explicit inputs. The evaluator does not infer the document table's location from the corpus path. It resolves `document_id` through that document table, resolves relative document paths from the document table's directory, and uses absolute local paths or URIs unchanged. It then resolves the source document into model-ready text using the run's layout-to-text strategy and OCR strategy. Plain text documents pass through unchanged, PDFs use native layout text extraction first with OCR fallback, and image documents use OCR. The evaluator sends the row-level prompt, resolved document text, and inline data model to one configured model through LiteLLM. The data model may be represented as JSON Schema in the corpus row and normalized through a Pydantic-compatible model in the evaluator.
 
 ## Normalization Policy
 
@@ -105,7 +105,7 @@ Retries can be added later as a separate evaluation track, but the baseline shou
 
 ## Result Record Shape
 
-The evaluator should emit a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. The first storage sink prints JSON rows; file-backed JSONL can use the same row shapes later.
+The evaluator emits a `runs` row for run identity/status and a `run_test_cases` row for each individual test case result. Terminal output may print those rows directly. Local or S3 persistence writes one immutable `run_id=<uuid>/` bundle containing `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`. The detail files are written first and `run.json` is written last as the completion marker.
 
 The `runs` row owns:
 

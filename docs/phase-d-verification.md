@@ -32,6 +32,7 @@ poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
+  --documents documents/documents.json \
   --temperature 0
 ```
 
@@ -42,6 +43,7 @@ poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
+  --documents documents/documents.json \
   --temperature 0 \
   --output-format jsonl
 ```

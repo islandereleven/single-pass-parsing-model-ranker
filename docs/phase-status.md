@@ -31,8 +31,9 @@ Completed evidence:
 - Test-case rows include `corpus_id`, `test_case_id`, `document_id`, `data_model`, `prompt`, and `ground_truth`.
 - All `*_id` fields are UUIDs.
 - Document files are protected by SHA-256 checksums.
-- `load_corpus` loads `TestCase` rows, checks registry links, confirms document existence, and detects checksum drift.
-- Tests cover loading, document reading, checksum drift, and unknown document references.
+- `load_corpus` accepts explicit corpus and document-registry locations, loads them from local paths or object-storage URIs, and checks registry links without assuming a shared directory layout.
+- Document resolution reads the selected source once and validates its checksum before the model call.
+- Tests cover local and remote loading, document reading, checksum drift, and unknown document references.
 - [evaluation-contract.md](evaluation-contract.md) defines scoring, normalization, zero-score runs, failed runs, and the first result record shape.
 
 Deferred Phase A refinements:
@@ -143,7 +144,7 @@ Phase E progress:
 - Added `FieldComparison` rows for field-level scoring evidence.
 - Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
 - Added document-level source names and [../DATA_NOTICE.md](../DATA_NOTICE.md) for provenance and license disclosure.
-- Added append-only local JSONL storage for runs, test-case results, and field-comparison evidence.
+- Added immutable local or S3 run bundles containing the final run, test-case results, and field-comparison evidence.
 
 Local smoke examples on `corpora/0.3.0.json`:
 

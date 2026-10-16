@@ -18,7 +18,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser = subparsers.add_parser("run", help="Run one model against one corpus.")
     run_parser.add_argument("--model", required=True, help="LiteLLM model id, such as gemini/gemini-2.5-flash.")
     run_parser.add_argument("--provider", help="Provider label stored on the run row.")
-    run_parser.add_argument("--corpus", required=True, help="Path to the corpus test-case table.")
+    run_parser.add_argument("--corpus", required=True, help="Local path or URI to the corpus test-case table.")
+    run_parser.add_argument(
+        "--documents",
+        required=True,
+        help="Local path or URI to the document registry table.",
+    )
     run_parser.add_argument("--temperature", type=float, help="Optional model temperature.")
     run_parser.add_argument(
         "--layout-to-text-strategy",
@@ -41,7 +46,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser.add_argument(
         "--output-dir",
         default="runs",
-        help="Directory for runs.jsonl, run_test_cases.jsonl, and field_comparisons.jsonl.",
+        help="Local path or URI for immutable per-run result bundles.",
     )
     run_parser.add_argument(
         "--log-level",
@@ -66,6 +71,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             model=args.model,
             provider=args.provider,
             corpus_path=args.corpus,
+            document_registry_path=args.documents,
             model_settings=_model_settings(args),
             layout_to_text_strategy=args.layout_to_text_strategy,
             ocr_strategy=args.ocr_strategy,

@@ -21,6 +21,8 @@ pdfplumber = "^0.11.10"
 pdf2image = "^1.17.0"
 pypdf = "^6.20.1"
 rapidfuzz = "^3.14.6"
+universal-pathlib = "^0.3.10"
+s3fs = "^2026.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

@@ -7,7 +7,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from uuid import UUID
+from uuid import UUID, uuid4
+
+from upath import UPath
 
 from single_pass_parsing_ranker import (
     AttemptStatus,
@@ -31,6 +33,7 @@ from single_pass_parsing_ranker import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
 VERSION_030_CORPUS = PROJECT_ROOT / "corpora" / "0.3.0.json"
+DOCUMENT_REGISTRY = PROJECT_ROOT / "documents" / "documents.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
@@ -40,7 +43,7 @@ class AuthenticationError(Exception):
 
 class RunnerTests(unittest.TestCase):
     def test_run_evaluation_scores_case_and_completes_run(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         calls = []
 
         def fake_request(**kwargs):
@@ -61,6 +64,7 @@ class RunnerTests(unittest.TestCase):
             run = run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 provider="gemini",
                 model_settings={"temperature": 0, "max_tokens": 1024},
                 run_id=RUN_ID,
@@ -106,7 +110,7 @@ class RunnerTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temp_dir:
                 env_path = Path(temp_dir) / ".env"
                 env_path.write_text("SINGLE_PASS_TEST_KEY=from-dotenv\n", encoding="utf-8")
-                test_case = load_corpus(EXAMPLE_CORPUS)[0]
+                test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
 
                 def fake_request(**kwargs):
                     self.assertEqual(os.environ["SINGLE_PASS_TEST_KEY"], "from-dotenv")
@@ -117,6 +121,7 @@ class RunnerTests(unittest.TestCase):
                     run_evaluation(
                         model="gemini/gemini-2.5-flash",
                         corpus_path=EXAMPLE_CORPUS,
+                        document_registry_path=DOCUMENT_REGISTRY,
                         run_id=RUN_ID,
                         env_path=env_path,
                         output_format="jsonl",
@@ -136,6 +141,7 @@ class RunnerTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 model_settings={"api_key": "do-not-store-this"},
                 output_format="jsonl",
@@ -143,7 +149,7 @@ class RunnerTests(unittest.TestCase):
             )
 
     def test_run_evaluation_prints_pretty_terminal_output_by_default(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
 
         def fake_request(**kwargs):
             return LLMCallResult(
@@ -161,6 +167,7 @@ class RunnerTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 provider="gemini",
                 model_settings={"temperature": 0},
                 run_id=RUN_ID,
@@ -181,7 +188,7 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("raw_output", text)
 
     def test_run_evaluation_prints_pretty_mismatches(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         model_output = dict(test_case.ground_truth)
         model_output["total"] = 999.0
 
@@ -193,6 +200,7 @@ class RunnerTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 structured_parse_request=fake_request,
@@ -205,7 +213,7 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("actual: 999.0", text)
 
     def test_run_evaluation_prints_jsonl_mismatch_rows(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         model_output = dict(test_case.ground_truth)
         model_output["total"] = 999.0
 
@@ -217,6 +225,7 @@ class RunnerTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 output_format="jsonl",
@@ -247,6 +256,7 @@ class RunnerTests(unittest.TestCase):
             run = run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 output_format="jsonl",
                 structured_parse_request=fake_request,
@@ -270,6 +280,7 @@ class RunnerTests(unittest.TestCase):
             run = run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 output_format="jsonl",
                 structured_parse_request=fake_request,
@@ -287,7 +298,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(run_row.failure_reason, FailureReason.AUTH_ERROR)
 
     def test_run_evaluation_fails_case_when_document_text_resolution_fails(self) -> None:
-        rows = load_corpus(VERSION_030_CORPUS)
+        rows = load_corpus(VERSION_030_CORPUS, document_registry_path=DOCUMENT_REGISTRY)
         calls = []
 
         def fake_request(**kwargs):
@@ -306,6 +317,7 @@ class RunnerTests(unittest.TestCase):
                 run = run_evaluation(
                     model="gemini/gemini-2.5-flash",
                     corpus_path=VERSION_030_CORPUS,
+                    document_registry_path=DOCUMENT_REGISTRY,
                     run_id=RUN_ID,
                     env_path=None,
                     output_format="jsonl",
@@ -329,7 +341,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
     def test_run_evaluation_persists_results_in_both_terminal_formats(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         model_output = dict(test_case.ground_truth)
         model_output["total"] = 999.0
 
@@ -340,6 +352,7 @@ class RunnerTests(unittest.TestCase):
                     run_evaluation(
                         model="gemini/gemini-2.5-flash",
                         corpus_path=EXAMPLE_CORPUS,
+                        document_registry_path=DOCUMENT_REGISTRY,
                         run_id=RUN_ID,
                         env_path=None,
                         output_format=output_format,
@@ -349,12 +362,12 @@ class RunnerTests(unittest.TestCase):
                         ),
                     )
 
-                run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
-                case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
-                comparison_rows = _read_jsonl(output_dir / "field_comparisons.jsonl", FieldComparison)
+                run_dir = output_dir / f"run_id={RUN_ID}"
+                run_row = Run.model_validate_json((run_dir / "run.json").read_text(encoding="utf-8"))
+                case_rows = _read_jsonl(run_dir / "run_test_cases.jsonl", RunTestCase)
+                comparison_rows = _read_jsonl(run_dir / "field_comparisons.jsonl", FieldComparison)
 
-                self.assertEqual(len(run_rows), 1)
-                self.assertEqual(run_rows[0].status, RunStatus.COMPLETED)
+                self.assertEqual(run_row.status, RunStatus.COMPLETED)
                 self.assertEqual(len(case_rows), 1)
                 self.assertEqual(case_rows[0].status, AttemptStatus.SCORED)
                 self.assertEqual(len(comparison_rows), 1)
@@ -369,19 +382,69 @@ class RunnerTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 output_dir=output_dir,
                 structured_parse_request=fake_request,
             )
 
-            run_rows = _read_jsonl(output_dir / "runs.jsonl", Run)
-            case_rows = _read_jsonl(output_dir / "run_test_cases.jsonl", RunTestCase)
+            run_dir = output_dir / f"run_id={RUN_ID}"
+            run_row = Run.model_validate_json((run_dir / "run.json").read_text(encoding="utf-8"))
+            case_rows = _read_jsonl(run_dir / "run_test_cases.jsonl", RunTestCase)
 
-        self.assertEqual(run_rows[0].status, RunStatus.FAILED)
-        self.assertEqual(run_rows[0].failure_reason, FailureReason.AUTH_ERROR)
+        self.assertEqual(run_row.status, RunStatus.FAILED)
+        self.assertEqual(run_row.failure_reason, FailureReason.AUTH_ERROR)
         self.assertEqual(case_rows[0].status, AttemptStatus.FAILED)
         self.assertEqual(case_rows[0].failure_reason, FailureReason.AUTH_ERROR)
+
+    def test_run_evaluation_reads_and_writes_remote_filesystem(self) -> None:
+        root = UPath(f"memory://sppr-runner-{uuid4()}")
+        corpus_dir = root / "corpora"
+        document_dir = root / "documents"
+        output_dir = root / "results"
+        corpus_dir.mkdir(parents=True)
+        document_dir.mkdir(parents=True)
+        (corpus_dir / "0.1.0.json").write_text(EXAMPLE_CORPUS.read_text(encoding="utf-8"), encoding="utf-8")
+        (corpus_dir / "corpora.json").write_text(
+            (PROJECT_ROOT / "corpora" / "corpora.json").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        (document_dir / "documents.json").write_text(
+            (PROJECT_ROOT / "documents" / "documents.json").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        (document_dir / "acme_invoice.txt").write_bytes(
+            (PROJECT_ROOT / "documents" / "acme_invoice.txt").read_bytes()
+        )
+        test_case = load_corpus(
+            corpus_dir / "0.1.0.json",
+            document_registry_path=document_dir / "documents.json",
+        )[0]
+
+        with redirect_stdout(StringIO()):
+            run_evaluation(
+                model="gemini/gemini-2.5-flash",
+                corpus_path=corpus_dir / "0.1.0.json",
+                document_registry_path=document_dir / "documents.json",
+                run_id=RUN_ID,
+                env_path=None,
+                output_dir=output_dir,
+                structured_parse_request=lambda **kwargs: LLMCallResult(
+                    raw_output=json.dumps(test_case.ground_truth)
+                ),
+            )
+
+        run_dir = output_dir / f"run_id={RUN_ID}"
+        run_row = Run.model_validate_json((run_dir / "run.json").read_text(encoding="utf-8"))
+        case_rows = [
+            RunTestCase.model_validate_json(line)
+            for line in (run_dir / "run_test_cases.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+
+        self.assertEqual(run_row.status, RunStatus.COMPLETED)
+        self.assertEqual(len(case_rows), 1)
+        self.assertEqual(case_rows[0].score, 1.0)
 
 
 def _read_jsonl(path: Path, model):

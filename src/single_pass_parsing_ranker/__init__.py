@@ -53,12 +53,7 @@ from single_pass_parsing_ranker.scoring import (
     score_field_comparisons,
     score_json_values,
 )
-from single_pass_parsing_ranker.storage import (
-    append_field_comparison,
-    append_jsonl,
-    append_run,
-    append_run_test_case,
-)
+from single_pass_parsing_ranker.storage import write_run_bundle
 
 __all__ = [
     "AttemptStatus",
@@ -87,10 +82,6 @@ __all__ = [
     "SchemaValidationError",
     "StructuredOutputValidationError",
     "TestCase",
-    "append_field_comparison",
-    "append_jsonl",
-    "append_run",
-    "append_run_test_case",
     "build_prompt",
     "comparison_method_for_path",
     "extract_litellm_result",
@@ -111,4 +102,5 @@ __all__ = [
     "score_field_comparisons",
     "score_json_values",
     "storage_schemas",
+    "write_run_bundle",
 ]

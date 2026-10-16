@@ -12,6 +12,7 @@ from single_pass_parsing_ranker.observability import PACKAGE_LOGGER_NAME, config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
+DOCUMENT_REGISTRY = PROJECT_ROOT / "documents" / "documents.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
@@ -30,7 +31,7 @@ class RunnerLoggingTests(unittest.TestCase):
         package_logger.propagate = True
 
     def test_successful_run_emits_expected_events_without_polluting_stdout(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         logs = StringIO()
         stdout = StringIO()
         configure_logging(level="INFO", log_format="json", stream=logs)
@@ -40,6 +41,7 @@ class RunnerLoggingTests(unittest.TestCase):
                 model="gemini/gemini-2.5-flash",
                 provider="gemini",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 output_format="jsonl",
@@ -107,6 +109,7 @@ class RunnerLoggingTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 output_format="jsonl",
@@ -137,6 +140,7 @@ class RunnerLoggingTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 output_format="jsonl",
