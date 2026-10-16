@@ -9,7 +9,8 @@ SPPR_LOG_LEVEL=INFO SPPR_LOG_FORMAT=json \
   poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
-  --corpus corpora/0.1.0.json
+  --corpus corpora/0.1.0.json \
+  --documents documents/documents.json
 ```
 
 The equivalent CLI options are `--log-level` and `--log-format`. Supported levels are `DEBUG`, `INFO`, `WARNING`, and `ERROR`; supported formats are `human` and `json`.

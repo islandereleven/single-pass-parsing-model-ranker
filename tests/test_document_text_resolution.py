@@ -2,10 +2,13 @@ from hashlib import sha256
 from pathlib import Path
 import unittest
 from unittest.mock import patch
-from uuid import UUID
+from uuid import UUID, uuid4
+
+from upath import UPath
 
 from single_pass_parsing_ranker import (
     Document,
+    DocumentTextResolutionError,
     LayoutToTextStrategy,
     OcrStrategy,
     load_documents,
@@ -46,7 +49,10 @@ class DocumentTextResolutionTests(unittest.TestCase):
         )
         blocks = (resolution.LayoutTextBlock(text="Invoice no: 86736203", page=1, x0=10, y0=20, x1=100, y1=30),)
 
-        with patch.object(resolution, "_ocr_file_to_blocks", return_value=blocks) as ocr_file_to_blocks:
+        with (
+            patch.object(resolution, "_read_document_bytes", return_value=b"image-bytes"),
+            patch.object(resolution, "_ocr_bytes_to_blocks", return_value=blocks) as ocr_bytes_to_blocks,
+        ):
             resolved = resolve_document_text(
                 document,
                 layout_to_text_strategy=LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT,
@@ -55,7 +61,12 @@ class DocumentTextResolutionTests(unittest.TestCase):
 
         self.assertEqual(resolved.text, "Page 1\nInvoice no: 86736203\n")
         self.assertEqual(resolved.sha256, sha256(resolved.text.encode("utf-8")).hexdigest())
-        ocr_file_to_blocks.assert_called_once_with(document.path, page=1, ocr_strategy=OcrStrategy.PYTESSERACT)
+        ocr_bytes_to_blocks.assert_called_once_with(
+            b"image-bytes",
+            source=str(document.path),
+            page=1,
+            ocr_strategy=OcrStrategy.PYTESSERACT,
+        )
 
     def test_native_layout_to_text_uses_native_pdf_text_before_ocr(self) -> None:
         document = Document(
@@ -66,7 +77,8 @@ class DocumentTextResolutionTests(unittest.TestCase):
         blocks = (resolution.LayoutTextBlock(text="Native PDF invoice text is present", page=1),)
 
         with (
-            patch.object(resolution, "_extract_pdf_native_layout_blocks", return_value=blocks),
+            patch.object(resolution, "_read_document_bytes", return_value=b"pdf-bytes"),
+            patch.object(resolution, "_extract_pdf_native_layout_blocks", return_value=blocks) as extract_blocks,
             patch.object(resolution, "_render_pdf_pages") as render_pdf_pages,
         ):
             resolved = resolve_document_text(
@@ -76,6 +88,7 @@ class DocumentTextResolutionTests(unittest.TestCase):
             )
 
         self.assertEqual(resolved.text, "Page 1\nNative PDF invoice text is present\n")
+        extract_blocks.assert_called_once_with(b"pdf-bytes", source=str(document.path))
         render_pdf_pages.assert_not_called()
 
     def test_native_layout_to_text_ocr_falls_back_for_pdf_without_native_text(self) -> None:
@@ -87,6 +100,7 @@ class DocumentTextResolutionTests(unittest.TestCase):
         blocks = (resolution.LayoutTextBlock(text="OCR PDF invoice text", page=1),)
 
         with (
+            patch.object(resolution, "_read_document_bytes", return_value=b"pdf-bytes"),
             patch.object(resolution, "_extract_pdf_native_layout_blocks", return_value=()),
             patch.object(resolution, "_render_pdf_pages", return_value=("page-image",)),
             patch.object(resolution, "_ocr_image_to_blocks", return_value=blocks) as ocr_image_to_blocks,
@@ -103,6 +117,41 @@ class DocumentTextResolutionTests(unittest.TestCase):
             page=1,
             ocr_strategy=OcrStrategy.PYTESSERACT,
         )
+
+    def test_rejects_document_checksum_drift_during_resolution(self) -> None:
+        document = Document(
+            document_id=ACME_DOCUMENT_ID,
+            path=PROJECT_ROOT / "documents" / "acme_invoice.txt",
+            sha256="0" * 64,
+            **TEST_SOURCE,
+        )
+
+        with self.assertRaisesRegex(DocumentTextResolutionError, "Checksum mismatch"):
+            resolve_document_text(
+                document,
+                layout_to_text_strategy=LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT,
+                ocr_strategy=OcrStrategy.PYTESSERACT,
+            )
+
+    def test_reads_text_document_from_remote_filesystem(self) -> None:
+        path = UPath(f"memory://sppr-document-{uuid4()}/invoice.txt")
+        path.parent.mkdir(parents=True)
+        payload = b"Invoice REMOTE-1\n"
+        path.write_bytes(payload)
+        document = Document(
+            document_id=ACME_DOCUMENT_ID,
+            path=path,
+            sha256=sha256(payload).hexdigest(),
+            **TEST_SOURCE,
+        )
+
+        resolved = resolve_document_text(
+            document,
+            layout_to_text_strategy=LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT,
+            ocr_strategy=OcrStrategy.PYTESSERACT,
+        )
+
+        self.assertEqual(resolved.text, payload.decode("utf-8"))
 
     def test_tesseract_data_is_serialized_in_reading_order(self) -> None:
         data = {

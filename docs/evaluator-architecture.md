@@ -22,7 +22,7 @@ All `*_id` fields are UUID strings on disk and UUID values in code.
 3. Resolve exactly one corpus id for the run.
 4. Resolve one layout-to-text strategy and one OCR strategy for this run.
 5. Create one `runs` row.
-6. Load the corpus and fixed document registry.
+6. Load the explicitly supplied corpus and fixed document registry.
 7. Create or schedule one `run_test_cases` row per test case.
 8. Execute test cases sequentially at first, with a path to parallel execution later.
 9. Write each test case result to `run_test_cases`.
@@ -45,9 +45,9 @@ Initial output storage is intentionally thin:
 
 - print readable run progress/results to the terminal
 - optionally print raw JSONL rows for `runs` and `run_test_cases`
-- collect result rows for one run and write one immutable local bundle at completion
+- collect result rows for one run and write one immutable local or S3 bundle at completion
 
-Each bundle lives under `run_id=<uuid>/` and contains `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`. Detail files are written first and `run.json` is written last as the completion marker. Later, the same bundle contract can target object storage without changing result schemas.
+Each bundle lives under `run_id=<uuid>/` and contains `run.json`, `run_test_cases.jsonl`, and `field_comparisons.jsonl`. Detail files are written first and `run.json` is written last as the completion marker. Universal paths provide the same contract for local files and S3 without bucket/key handling inside the evaluator.
 
 The `runs` table records run identity, configuration, status, and reproducibility metadata. It does not store aggregate scoring or cost metrics.
 
@@ -136,7 +136,7 @@ Parallel execution can schedule test cases independently. If one document-resolu
 
 Document text resolution is a run-level experiment variable.
 
-The first strategy is `native_layout_to_text`. It passes `.txt` files through unchanged, extracts native PDF text with layout where available, falls back to OCR for scanned PDFs, and OCRs image inputs with PyTesseract. Every successful path records the SHA-256 of the exact text sent into the prompt.
+The caller supplies the document registry independently from the corpus; no registry path is inferred. Relative paths in the registry resolve from that registry's directory, while absolute local paths and URIs remain unchanged. The first strategy is `native_layout_to_text`. It reads a selected local or S3 document once as bytes, validates its registered source checksum, passes `.txt` files through unchanged, extracts native PDF text with layout where available, falls back to OCR for scanned PDFs, and OCRs image inputs with PyTesseract. Every successful path records the SHA-256 of the exact text sent into the prompt.
 
 The run also records `ocr_strategy`. The first enum value is `pytesseract`.
 

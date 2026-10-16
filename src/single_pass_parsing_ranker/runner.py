@@ -13,6 +13,8 @@ from time import perf_counter
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
+from upath import UPath
+
 from single_pass_parsing_ranker.data import load_corpus, load_documents
 from single_pass_parsing_ranker.document_text_resolution import (
     DocumentTextResolutionError,
@@ -88,6 +90,7 @@ def run_evaluation(
     *,
     model: str,
     corpus_path: str | Path,
+    document_registry_path: str | Path,
     output_dir: str | Path | None = None,
     provider: str | None = None,
     model_settings: JsonObject | None = None,
@@ -95,7 +98,6 @@ def run_evaluation(
     ocr_strategy: OcrStrategy | str = OcrStrategy.PYTESSERACT,
     run_id: UUID | None = None,
     corpus_table_path: str | Path | None = None,
-    document_registry_path: str | Path | None = None,
     env_path: str | Path | None = ".env",
     output_format: OutputFormat = "pretty",
     structured_parse_request: Callable[..., LLMCallResult] = request_structured_parse,
@@ -104,9 +106,9 @@ def run_evaluation(
     settings = dict(model_settings or {})
     _reject_secret_model_settings(settings)
     _validate_output_format(output_format)
-    resolved_output_dir = Path(output_dir) if output_dir is not None else None
+    resolved_output_dir = UPath(output_dir) if output_dir is not None else None
 
-    corpus_path = Path(corpus_path).resolve()
+    corpus_path = UPath(corpus_path)
     rows = load_corpus(
         corpus_path,
         corpus_table_path=corpus_table_path,
@@ -116,7 +118,7 @@ def run_evaluation(
         raise RunnerError(f"Corpus has no test cases: {corpus_path}")
 
     corpus_id = _single_corpus_id(rows)
-    documents = load_documents(_document_registry_path(corpus_path, document_registry_path))
+    documents = load_documents(document_registry_path)
     run = Run(
         run_id=run_id or uuid4(),
         model=model,
@@ -383,12 +385,6 @@ def _single_corpus_id(rows: tuple[TestCase, ...]) -> UUID:
     if len(corpus_ids) != 1:
         raise RunnerError("A run must target exactly one corpus_id")
     return next(iter(corpus_ids))
-
-
-def _document_registry_path(corpus_path: Path, document_registry_path: str | Path | None) -> Path:
-    if document_registry_path is not None:
-        return Path(document_registry_path)
-    return corpus_path.parent / "../documents/documents.json"
 
 
 def _utc_now() -> datetime:

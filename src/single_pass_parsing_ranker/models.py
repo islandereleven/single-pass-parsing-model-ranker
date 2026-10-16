@@ -13,9 +13,11 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
+    field_serializer,
     field_validator,
     model_validator,
 )
+from upath import UPath
 
 
 JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
@@ -78,10 +80,23 @@ class DataModelSchema(RootModel[JsonObject]):
 
 class Document(StrictModel):
     document_id: UUID
-    path: Path
+    path: UPath
     source_name: str = Field(min_length=1)
     source_record_id: str | None = None
     sha256: str | None = None
+
+    @field_validator("path", mode="before")
+    @classmethod
+    def _parse_path(cls, value: str | Path | UPath) -> str | UPath:
+        if isinstance(value, UPath):
+            return value
+        if isinstance(value, Path):
+            return str(value)
+        return value
+
+    @field_serializer("path")
+    def _serialize_path(self, value: UPath) -> str:
+        return str(value)
 
 
 class Corpus(StrictModel):

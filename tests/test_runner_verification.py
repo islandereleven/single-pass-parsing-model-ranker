@@ -27,6 +27,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
 EXAMPLE_CORPORA = PROJECT_ROOT / "corpora" / "corpora.json"
 EXAMPLE_DOCUMENTS = PROJECT_ROOT / "documents"
+DOCUMENT_REGISTRY = EXAMPLE_DOCUMENTS / "documents.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
@@ -126,6 +127,7 @@ class RunnerVerificationTests(unittest.TestCase):
                     run_evaluation(
                         model="gemini/gemini-2.5-flash",
                         corpus_path=corpus_path,
+                        document_registry_path=Path(temp_dir) / "documents" / "documents.json",
                         run_id=RUN_ID,
                         env_path=None,
                         output_format="jsonl",
@@ -136,7 +138,7 @@ class RunnerVerificationTests(unittest.TestCase):
         self.assertEqual(output.getvalue(), "")
 
     def test_jsonl_output_is_parseable_case_row_then_run_row(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
 
         case_row, run_row, _ = _run_jsonl(lambda **kwargs: LLMCallResult(raw_output=json.dumps(test_case.ground_truth)))
 
@@ -151,6 +153,7 @@ def _run_jsonl(structured_parse_request):
         returned_run = run_evaluation(
             model="gemini/gemini-2.5-flash",
             corpus_path=EXAMPLE_CORPUS,
+            document_registry_path=DOCUMENT_REGISTRY,
             run_id=RUN_ID,
             env_path=None,
             output_format="jsonl",

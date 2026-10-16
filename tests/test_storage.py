@@ -1,7 +1,10 @@
 from pathlib import Path
 import tempfile
 import unittest
-from uuid import UUID
+from unittest.mock import patch
+from uuid import UUID, uuid4
+
+from upath import UPath
 
 from single_pass_parsing_ranker import (
     AttemptStatus,
@@ -95,6 +98,35 @@ class StorageTests(unittest.TestCase):
             write_run_bundle(temp_dir, run, (), ())
             with self.assertRaises(FileExistsError):
                 write_run_bundle(temp_dir, run, (), ())
+
+    def test_write_run_bundle_supports_remote_filesystem(self) -> None:
+        run = Run(run_id=RUN_ID, model="model", corpus_id=CORPUS_ID, status=RunStatus.COMPLETED)
+        output_dir = UPath(f"memory://sppr-storage-{uuid4()}")
+
+        run_dir = write_run_bundle(output_dir, run, (), ())
+
+        self.assertEqual(Run.model_validate_json((run_dir / "run.json").read_text()).run_id, RUN_ID)
+        self.assertEqual((run_dir / "run_test_cases.jsonl").read_text(), "")
+        self.assertEqual((run_dir / "field_comparisons.jsonl").read_text(), "")
+
+    def test_write_failure_does_not_create_completion_marker(self) -> None:
+        run = Run(run_id=RUN_ID, model="model", corpus_id=CORPUS_ID, status=RunStatus.COMPLETED)
+        output_dir = UPath(f"memory://sppr-storage-{uuid4()}")
+        path_type = type(output_dir)
+        write_text = path_type.write_text
+
+        def fail_on_comparisons(path, data, *args, **kwargs):
+            if path.name == "field_comparisons.jsonl":
+                raise OSError("simulated write failure")
+            return write_text(path, data, *args, **kwargs)
+
+        with patch.object(path_type, "write_text", fail_on_comparisons):
+            with self.assertRaisesRegex(OSError, "simulated write failure"):
+                write_run_bundle(output_dir, run, (), ())
+
+        run_dir = output_dir / f"run_id={RUN_ID}"
+        self.assertTrue((run_dir / "run_test_cases.jsonl").exists())
+        self.assertFalse((run_dir / "run.json").exists())
 
 
 if __name__ == "__main__":

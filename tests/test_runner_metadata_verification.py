@@ -10,12 +10,13 @@ from single_pass_parsing_ranker import LLMCallResult, Run, RunStatus, RunTestCas
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
+DOCUMENT_REGISTRY = PROJECT_ROOT / "documents" / "documents.json"
 RUN_ID = UUID("72b60a7f-2a08-4d18-91f6-cb524ec777a0")
 
 
 class RunnerMetadataVerificationTests(unittest.TestCase):
     def test_runner_copies_litellm_metadata_to_run_test_case_row(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
         metadata = {
             "id": "response-001",
             "model": "gemini-2.5-flash",
@@ -62,7 +63,7 @@ class RunnerMetadataVerificationTests(unittest.TestCase):
         self.assertFalse(hasattr(run_row, "estimated_cost_usd"))
 
     def test_runner_leaves_missing_metadata_null_and_does_not_guess(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
 
         case_row, run_row = _run_jsonl(lambda **kwargs: LLMCallResult(raw_output=json.dumps(test_case.ground_truth)))
 
@@ -80,7 +81,7 @@ class RunnerMetadataVerificationTests(unittest.TestCase):
         self.assertEqual(run_row.status, RunStatus.COMPLETED)
 
     def test_pretty_output_summarizes_metadata_without_raw_response_blob(self) -> None:
-        test_case = load_corpus(EXAMPLE_CORPUS)[0]
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
 
         def fake_request(**kwargs):
             return LLMCallResult(
@@ -99,6 +100,7 @@ class RunnerMetadataVerificationTests(unittest.TestCase):
             run_evaluation(
                 model="gemini/gemini-2.5-flash",
                 corpus_path=EXAMPLE_CORPUS,
+                document_registry_path=DOCUMENT_REGISTRY,
                 run_id=RUN_ID,
                 env_path=None,
                 structured_parse_request=fake_request,
@@ -119,6 +121,7 @@ def _run_jsonl(structured_parse_request) -> tuple[RunTestCase, Run]:
         run_evaluation(
             model="gemini/gemini-2.5-flash",
             corpus_path=EXAMPLE_CORPUS,
+            document_registry_path=DOCUMENT_REGISTRY,
             run_id=RUN_ID,
             env_path=None,
             output_format="jsonl",

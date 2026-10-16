@@ -3,7 +3,9 @@ import json
 import shutil
 import tempfile
 import unittest
-from uuid import UUID
+from uuid import UUID, uuid4
+
+from upath import UPath
 
 from single_pass_parsing_ranker import (
     CorpusLoadError,
@@ -18,6 +20,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_CORPUS = PROJECT_ROOT / "corpora" / "0.1.0.json"
 EXAMPLE_CORPORA = PROJECT_ROOT / "corpora" / "corpora.json"
 EXAMPLE_DOCUMENTS = PROJECT_ROOT / "documents"
+EXAMPLE_DOCUMENT_REGISTRY = EXAMPLE_DOCUMENTS / "documents.json"
 CORPUS_ID = UUID("3d2f2e84-7f80-4d8d-a243-3b2d273d4a04")
 DOCUMENT_ID = UUID("2dcad689-51a8-4c19-8a6e-8ed72fb2e4d9")
 TEST_CASE_ID = UUID("5c9c0d9b-a412-4f0a-9cc6-fdb164b2c1f5")
@@ -38,7 +41,7 @@ def copy_fixture(temp_root: Path) -> Path:
 
 class TestCaseLoadingTests(unittest.TestCase):
     def test_loads_example_corpus_table(self) -> None:
-        rows = load_corpus(EXAMPLE_CORPUS)
+        rows = load_corpus(EXAMPLE_CORPUS, document_registry_path=EXAMPLE_DOCUMENT_REGISTRY)
         corpora = load_corpora(EXAMPLE_CORPORA)
         raw_corpus = json.loads(EXAMPLE_CORPUS.read_text(encoding="utf-8"))
         raw_documents = json.loads((EXAMPLE_DOCUMENTS / "documents.json").read_text(encoding="utf-8"))
@@ -62,8 +65,8 @@ class TestCaseLoadingTests(unittest.TestCase):
         self.assertIn("Return exactly one JSON object", row.prompt)
 
     def test_reads_document_and_inline_data_model(self) -> None:
-        row = load_corpus(EXAMPLE_CORPUS)[0]
-        documents = load_documents(EXAMPLE_DOCUMENTS / "documents.json")
+        row = load_corpus(EXAMPLE_CORPUS, document_registry_path=EXAMPLE_DOCUMENT_REGISTRY)[0]
+        documents = load_documents(EXAMPLE_DOCUMENT_REGISTRY)
         document = documents[row.document_id].path.read_text(encoding="utf-8")
         data_model = row.data_model
 
@@ -90,9 +93,12 @@ class TestCaseLoadingTests(unittest.TestCase):
             copied_corpus.write_text(json.dumps(table, indent=2) + "\n", encoding="utf-8")
 
             with self.assertRaises(CorpusLoadError):
-                load_corpus(copied_corpus)
+                load_corpus(
+                    copied_corpus,
+                    document_registry_path=temp_root / "documents" / "documents.json",
+                )
 
-    def test_rejects_fixed_document_checksum_drift(self) -> None:
+    def test_defers_document_checksum_validation_until_resolution(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             copied_corpus = copy_fixture(temp_root)
@@ -102,8 +108,34 @@ class TestCaseLoadingTests(unittest.TestCase):
             edited = document.read_text(encoding="utf-8") + "\nUnexpected edit.\n"
             document.write_text(edited, encoding="utf-8")
 
-            with self.assertRaises(CorpusLoadError):
-                load_corpus(copied_corpus)
+            rows = load_corpus(
+                copied_corpus,
+                document_registry_path=copied_documents / "documents.json",
+            )
+
+        self.assertEqual(len(rows), 1)
+
+    def test_loads_corpus_and_registry_from_remote_filesystem(self) -> None:
+        root = UPath(f"memory://sppr-corpus-{uuid4()}")
+        corpus_dir = root / "corpora"
+        document_dir = root / "documents"
+        corpus_dir.mkdir(parents=True)
+        document_dir.mkdir(parents=True)
+        (corpus_dir / "0.1.0.json").write_text(EXAMPLE_CORPUS.read_text(encoding="utf-8"), encoding="utf-8")
+        (corpus_dir / "corpora.json").write_text(EXAMPLE_CORPORA.read_text(encoding="utf-8"), encoding="utf-8")
+        (document_dir / "documents.json").write_text(
+            (EXAMPLE_DOCUMENTS / "documents.json").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+
+        rows = load_corpus(
+            corpus_dir / "0.1.0.json",
+            document_registry_path=document_dir / "documents.json",
+        )
+        documents = load_documents(document_dir / "documents.json")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(str(documents[DOCUMENT_ID].path), f"{document_dir}/acme_invoice.txt")
 
     def test_rejects_rows_that_reference_unknown_documents(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -115,7 +147,10 @@ class TestCaseLoadingTests(unittest.TestCase):
             copied_corpus.write_text(json.dumps(table, indent=2) + "\n", encoding="utf-8")
 
             with self.assertRaises(CorpusLoadError):
-                load_corpus(copied_corpus)
+                load_corpus(
+                    copied_corpus,
+                    document_registry_path=temp_root / "documents" / "documents.json",
+                )
 
     def test_rejects_rows_that_reference_unknown_corpora(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -127,7 +162,10 @@ class TestCaseLoadingTests(unittest.TestCase):
             copied_corpus.write_text(json.dumps(table, indent=2) + "\n", encoding="utf-8")
 
             with self.assertRaises(CorpusLoadError):
-                load_corpus(copied_corpus)
+                load_corpus(
+                    copied_corpus,
+                    document_registry_path=temp_root / "documents" / "documents.json",
+                )
 
 
 if __name__ == "__main__":

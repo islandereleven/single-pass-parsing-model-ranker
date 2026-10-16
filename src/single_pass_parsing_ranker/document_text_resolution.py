@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-from pathlib import Path
+from io import BytesIO
 from typing import Any
 
 from single_pass_parsing_ranker.models import (
@@ -48,45 +48,68 @@ def resolve_document_text(
     if layout_to_text_strategy != LayoutToTextStrategy.NATIVE_LAYOUT_TO_TEXT:
         raise DocumentTextResolutionError(f"Unsupported layout_to_text_strategy: {layout_to_text_strategy}")
 
-    if document.path.suffix.lower() == ".txt":
-        return _read_text_document(document)
-    if document.path.suffix.lower() in _IMAGE_SUFFIXES:
-        return _resolve_image_document(document, ocr_strategy=ocr_strategy)
-    if document.path.suffix.lower() == _PDF_SUFFIX:
-        return _resolve_pdf_document(document, ocr_strategy=ocr_strategy)
+    suffix = document.path.suffix.lower()
+    if suffix not in {*_IMAGE_SUFFIXES, _PDF_SUFFIX, ".txt"}:
+        raise DocumentTextResolutionError(
+            "Document type is not supported by native layout-to-text yet: "
+            f"{document.path.suffix or document.path.name} with OCR strategy {ocr_strategy.value}"
+        )
 
-    raise DocumentTextResolutionError(
-        "Document type is not supported by native layout-to-text yet: "
-        f"{document.path.suffix or document.path.name} with OCR strategy {ocr_strategy.value}"
-    )
+    payload = _read_document_bytes(document)
+    if suffix == ".txt":
+        return _read_text_document(payload, source=str(document.path))
+    if suffix in _IMAGE_SUFFIXES:
+        return _resolve_image_document(payload, source=str(document.path), ocr_strategy=ocr_strategy)
+    return _resolve_pdf_document(payload, source=str(document.path), ocr_strategy=ocr_strategy)
 
 
-def _read_text_document(document: Document) -> ResolvedDocumentText:
+def _read_document_bytes(document: Document) -> bytes:
     try:
-        text = document.path.read_text(encoding="utf-8")
+        payload = document.path.read_bytes()
     except OSError as exc:
-        raise DocumentTextResolutionError(f"Could not read document text: {document.path}") from exc
+        raise DocumentTextResolutionError(f"Could not read document: {document.path}") from exc
+
+    if document.sha256 and sha256(payload).hexdigest() != document.sha256:
+        raise DocumentTextResolutionError(f"Checksum mismatch for document_id: {document.document_id}")
+    return payload
+
+
+def _read_text_document(payload: bytes, *, source: str) -> ResolvedDocumentText:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DocumentTextResolutionError(f"Document is not valid UTF-8 text: {source}") from exc
     return ResolvedDocumentText(text=text, sha256=sha256(text.encode("utf-8")).hexdigest())
 
 
-def _resolve_image_document(document: Document, *, ocr_strategy: OcrStrategy) -> ResolvedDocumentText:
-    blocks = _ocr_file_to_blocks(document.path, page=1, ocr_strategy=ocr_strategy)
+def _resolve_image_document(
+    payload: bytes,
+    *,
+    source: str,
+    ocr_strategy: OcrStrategy,
+) -> ResolvedDocumentText:
+    blocks = _ocr_bytes_to_blocks(payload, source=source, page=1, ocr_strategy=ocr_strategy)
     return _resolved_text_from_blocks(blocks)
 
 
-def _resolve_pdf_document(document: Document, *, ocr_strategy: OcrStrategy) -> ResolvedDocumentText:
-    native_blocks = _extract_pdf_native_layout_blocks(document.path)
+def _resolve_pdf_document(
+    payload: bytes,
+    *,
+    source: str,
+    ocr_strategy: OcrStrategy,
+) -> ResolvedDocumentText:
+    native_blocks = _extract_pdf_native_layout_blocks(payload, source=source)
     native_text = _serialize_layout_text(native_blocks)
     if len(native_text.strip()) >= _MIN_NATIVE_PDF_CHARS:
         return _resolved_text(native_text)
 
     ocr_blocks: list[LayoutTextBlock] = []
-    for page_index, image in enumerate(_render_pdf_pages(document.path), start=1):
+    for page_index, image in enumerate(_render_pdf_pages(payload, source=source), start=1):
         ocr_blocks.extend(_ocr_image_to_blocks(image, page=page_index, ocr_strategy=ocr_strategy))
     return _resolved_text_from_blocks(tuple(ocr_blocks))
 
 
-def _extract_pdf_native_layout_blocks(path: Path) -> tuple[LayoutTextBlock, ...]:
+def _extract_pdf_native_layout_blocks(payload: bytes, *, source: str) -> tuple[LayoutTextBlock, ...]:
     try:
         import pdfplumber
     except ImportError as exc:
@@ -94,7 +117,7 @@ def _extract_pdf_native_layout_blocks(path: Path) -> tuple[LayoutTextBlock, ...]
 
     try:
         blocks: list[LayoutTextBlock] = []
-        with pdfplumber.open(path) as pdf:
+        with pdfplumber.open(BytesIO(payload)) as pdf:
             for page_index, page in enumerate(pdf.pages, start=1):
                 words = page.extract_words(
                     keep_blank_chars=False,
@@ -104,35 +127,41 @@ def _extract_pdf_native_layout_blocks(path: Path) -> tuple[LayoutTextBlock, ...]
                 )
                 blocks.extend(_words_to_line_blocks(words, page=page_index))
     except Exception as exc:
-        raise DocumentTextResolutionError(f"Could not extract native PDF layout text: {path}") from exc
+        raise DocumentTextResolutionError(f"Could not extract native PDF layout text: {source}") from exc
     return tuple(blocks)
 
 
-def _render_pdf_pages(path: Path) -> tuple[Any, ...]:
+def _render_pdf_pages(payload: bytes, *, source: str) -> tuple[Any, ...]:
     try:
-        from pdf2image import convert_from_path
+        from pdf2image import convert_from_bytes
     except ImportError as exc:
         raise DocumentTextResolutionError("pdf2image is required for scanned PDF OCR") from exc
 
     try:
-        return tuple(convert_from_path(path, dpi=300))
+        return tuple(convert_from_bytes(payload, dpi=300))
     except Exception as exc:
-        raise DocumentTextResolutionError(f"Could not render PDF pages for OCR: {path}") from exc
+        raise DocumentTextResolutionError(f"Could not render PDF pages for OCR: {source}") from exc
 
 
-def _ocr_file_to_blocks(path: Path, *, page: int, ocr_strategy: OcrStrategy) -> tuple[LayoutTextBlock, ...]:
+def _ocr_bytes_to_blocks(
+    payload: bytes,
+    *,
+    source: str,
+    page: int,
+    ocr_strategy: OcrStrategy,
+) -> tuple[LayoutTextBlock, ...]:
     try:
         from PIL import Image
     except ImportError as exc:
         raise DocumentTextResolutionError("Pillow is required for image OCR") from exc
 
     try:
-        with Image.open(path) as image:
+        with Image.open(BytesIO(payload)) as image:
             return _ocr_image_to_blocks(image, page=page, ocr_strategy=ocr_strategy)
     except DocumentTextResolutionError:
         raise
     except Exception as exc:
-        raise DocumentTextResolutionError(f"Could not OCR image document: {path}") from exc
+        raise DocumentTextResolutionError(f"Could not OCR image document: {source}") from exc
 
 
 def _ocr_image_to_blocks(image: Any, *, page: int, ocr_strategy: OcrStrategy) -> tuple[LayoutTextBlock, ...]:

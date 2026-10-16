@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from pydantic import TypeAdapter, ValidationError
+from upath import UPath
 
 from single_pass_parsing_ranker.models import (
     Corpus,
@@ -19,26 +19,27 @@ from single_pass_parsing_ranker.models import (
 
 
 def load_corpus(
-    path: str | Path,
-    corpus_table_path: str | Path | None = None,
-    document_registry_path: str | Path | None = None,
+    path: str | Path | UPath,
+    *,
+    document_registry_path: str | Path | UPath,
+    corpus_table_path: str | Path | UPath | None = None,
 ) -> tuple[TestCase, ...]:
-    path = Path(path).resolve()
+    path = UPath(path)
     payload = _read_json(path)
     try:
         raw = TypeAdapter(tuple[TestCase, ...]).validate_python(payload)
     except ValidationError as exc:
         raise CorpusLoadError(f"Invalid corpus table in {path}") from exc
 
-    corpus_path = Path(corpus_table_path) if corpus_table_path else path.parent / "corpora.json"
-    registry_path = Path(document_registry_path) if document_registry_path else path.parent / "../documents/documents.json"
+    corpus_path = UPath(corpus_table_path) if corpus_table_path else path.parent / "corpora.json"
+    registry_path = UPath(document_registry_path)
     corpora = load_corpora(corpus_path)
     documents = load_documents(registry_path)
     return _load_rows(raw, corpora, documents)
 
 
-def load_corpora(path: str | Path) -> dict[UUID, Corpus]:
-    path = Path(path).resolve()
+def load_corpora(path: str | Path | UPath) -> dict[UUID, Corpus]:
+    path = UPath(path)
     payload = _read_json(path)
     try:
         raw = TypeAdapter(tuple[Corpus, ...]).validate_python(payload)
@@ -53,25 +54,22 @@ def load_corpora(path: str | Path) -> dict[UUID, Corpus]:
     return corpora
 
 
-def load_documents(path: str | Path) -> dict[UUID, Document]:
-    path = Path(path).resolve()
+def load_documents(path: str | Path | UPath) -> dict[UUID, Document]:
+    path = UPath(path)
     payload = _read_json(path)
     try:
         raw = TypeAdapter(tuple[Document, ...]).validate_python(payload)
     except ValidationError as exc:
         raise CorpusLoadError(f"Invalid document registry in {path}") from exc
 
-    root = path.parent.resolve()
+    root = path.parent
     documents: dict[UUID, Document] = {}
     for item in raw:
         document_id = item.document_id
-        document = item.model_copy(update={"path": (root / item.path).resolve()})
+        document_path = item.path if item.path.is_absolute() else root / str(item.path)
+        document = item.model_copy(update={"path": document_path})
         if document_id in documents:
             raise CorpusLoadError(f"Duplicate document_id: {document_id}")
-        if not document.path.is_file():
-            raise CorpusLoadError(f"Missing document file: {document.path}")
-        if document.sha256 and _sha256(document.path) != document.sha256:
-            raise CorpusLoadError(f"Checksum mismatch for document_id: {document_id}")
         documents[document_id] = document
     return documents
 
@@ -97,18 +95,10 @@ def _load_rows(
     return tuple(rows)
 
 
-def _read_json(path: Path) -> Any:
+def _read_json(path: UPath) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise CorpusLoadError(f"Missing JSON file: {path}") from exc
     except json.JSONDecodeError as exc:
         raise CorpusLoadError(f"Invalid JSON file: {path}") from exc
-
-
-def _sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as file:
-        for chunk in iter(lambda: file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()

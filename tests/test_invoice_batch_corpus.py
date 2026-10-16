@@ -26,7 +26,7 @@ KAGGLE_SOURCE_NAME = "High-Quality Invoice Images for OCR"
 
 class Version020CorpusTests(unittest.TestCase):
     def test_loads_version_020_corpus(self) -> None:
-        rows = load_corpus(CORPUS_PATH)
+        rows = load_corpus(CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)
         corpora = load_corpora(CORPORA_PATH)
 
         self.assertIn(CORPUS_ID, corpora)
@@ -41,7 +41,7 @@ class Version020CorpusTests(unittest.TestCase):
         self.assertTrue(all("Return exactly one JSON object" in row.prompt for row in rows))
 
     def test_version_020_uses_acme_text_and_source_jpegs_only(self) -> None:
-        rows = load_corpus(CORPUS_PATH)
+        rows = load_corpus(CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)
         documents = load_documents(DOCUMENTS_PATH)
         files = sorted(DOCUMENT_DIR.iterdir())
         jpg_files = sorted(path for path in files if path.suffix == ".jpg")
@@ -70,11 +70,15 @@ class Version020CorpusTests(unittest.TestCase):
         self.assertNotIn("OCRed Text", rendered)
 
     def test_version_020_ground_truth_matches_inline_data_model(self) -> None:
-        for row in load_corpus(CORPUS_PATH):
+        for row in load_corpus(CORPUS_PATH, document_registry_path=DOCUMENTS_PATH):
             self.assertEqual(normalize_json_value(row.ground_truth, row.data_model), row.ground_truth)
 
     def test_version_020_invoice_batch_amounts_are_numbers(self) -> None:
-        rows = [row for row in load_corpus(CORPUS_PATH) if row.data_model["title"] == "InvoiceExtraction"]
+        rows = [
+            row
+            for row in load_corpus(CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)
+            if row.data_model["title"] == "InvoiceExtraction"
+        ]
 
         for row in rows:
             item_properties = row.data_model["properties"]["items"]["items"]["properties"]
@@ -91,7 +95,11 @@ class Version020CorpusTests(unittest.TestCase):
             self.assertIsInstance(row.ground_truth["subtotal"]["total"], (int, float))
 
     def test_version_020_invoice_batch_marks_text_noise_fields_as_fuzzy(self) -> None:
-        rows = [row for row in load_corpus(CORPUS_PATH) if row.data_model["title"] == "InvoiceExtraction"]
+        rows = [
+            row
+            for row in load_corpus(CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)
+            if row.data_model["title"] == "InvoiceExtraction"
+        ]
 
         for row in rows:
             invoice_properties = row.data_model["properties"]["invoice"]["properties"]
@@ -104,7 +112,7 @@ class Version020CorpusTests(unittest.TestCase):
 
 class Version030MiniCorpusTests(unittest.TestCase):
     def test_loads_version_030_mini_mixed_corpus(self) -> None:
-        rows = load_corpus(MINI_CORPUS_PATH)
+        rows = load_corpus(MINI_CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)
         corpora = load_corpora(CORPORA_PATH)
         documents = load_documents(DOCUMENTS_PATH)
 
@@ -121,7 +129,7 @@ class Version030MiniCorpusTests(unittest.TestCase):
         self.assertEqual(rows[1].data_model["title"], "InvoiceExtraction")
 
     def test_version_030_invoice_batch_amounts_are_numbers(self) -> None:
-        row = load_corpus(MINI_CORPUS_PATH)[1]
+        row = load_corpus(MINI_CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)[1]
         item_properties = row.data_model["properties"]["items"]["items"]["properties"]
         subtotal_properties = row.data_model["properties"]["subtotal"]["properties"]
 
@@ -135,7 +143,7 @@ class Version030MiniCorpusTests(unittest.TestCase):
         self.assertIsInstance(row.ground_truth["subtotal"]["total"], (int, float))
 
     def test_version_030_invoice_batch_marks_text_noise_fields_as_fuzzy(self) -> None:
-        row = load_corpus(MINI_CORPUS_PATH)[1]
+        row = load_corpus(MINI_CORPUS_PATH, document_registry_path=DOCUMENTS_PATH)[1]
         invoice_properties = row.data_model["properties"]["invoice"]["properties"]
         item_properties = row.data_model["properties"]["items"]["items"]["properties"]
 
