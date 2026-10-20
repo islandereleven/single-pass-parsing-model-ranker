@@ -1,8 +1,14 @@
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from single_pass_parsing_ranker import cli
+from single_pass_parsing_ranker import RunStatus, cli
+
+
+def _run_result(status: RunStatus = RunStatus.COMPLETED) -> Mock:
+    result = Mock()
+    result.status = status
+    return result
 
 
 class CLITests(unittest.TestCase):
@@ -16,9 +22,10 @@ class CLITests(unittest.TestCase):
 
         def fake_run_evaluation(**kwargs):
             calls.append(kwargs)
+            return _run_result()
 
         with patch.object(cli, "run_evaluation", fake_run_evaluation):
-            cli.main(
+            exit_code = cli.main(
                 [
                     "run",
                     "--model",
@@ -50,12 +57,14 @@ class CLITests(unittest.TestCase):
                 }
             ],
         )
+        self.assertEqual(exit_code, 0)
 
     def test_run_command_supports_jsonl_output(self) -> None:
         calls = []
 
         def fake_run_evaluation(**kwargs):
             calls.append(kwargs)
+            return _run_result()
 
         with patch.object(cli, "run_evaluation", fake_run_evaluation):
             cli.main(
@@ -84,6 +93,7 @@ class CLITests(unittest.TestCase):
 
         def fake_run_evaluation(**kwargs):
             calls.append(kwargs)
+            return _run_result()
 
         with patch.object(cli, "run_evaluation", fake_run_evaluation):
             cli.main(
@@ -108,7 +118,11 @@ class CLITests(unittest.TestCase):
     def test_run_command_accepts_output_directory(self) -> None:
         calls = []
 
-        with patch.object(cli, "run_evaluation", lambda **kwargs: calls.append(kwargs)):
+        def fake_run_evaluation(**kwargs):
+            calls.append(kwargs)
+            return _run_result()
+
+        with patch.object(cli, "run_evaluation", fake_run_evaluation):
             cli.main(
                 [
                     "run",
@@ -128,7 +142,11 @@ class CLITests(unittest.TestCase):
     def test_run_command_passes_through_s3_uris(self) -> None:
         calls = []
 
-        with patch.object(cli, "run_evaluation", lambda **kwargs: calls.append(kwargs)):
+        def fake_run_evaluation(**kwargs):
+            calls.append(kwargs)
+            return _run_result()
+
+        with patch.object(cli, "run_evaluation", fake_run_evaluation):
             cli.main(
                 [
                     "run",
@@ -170,7 +188,7 @@ class CLITests(unittest.TestCase):
 
         self.configure_logging.assert_called_once_with(level="WARNING", log_format="json")
 
-    def test_run_command_uses_logging_environment_defaults(self) -> None:
+    def test_run_command_does_not_read_logging_environment(self) -> None:
         with (
             patch.dict(
                 os.environ,
@@ -191,7 +209,23 @@ class CLITests(unittest.TestCase):
                 ]
             )
 
-        self.configure_logging.assert_called_once_with(level="ERROR", log_format="json")
+        self.configure_logging.assert_called_once_with(level="INFO", log_format="human")
+
+    def test_run_command_returns_nonzero_for_failed_run(self) -> None:
+        with patch.object(cli, "run_evaluation", return_value=_run_result(RunStatus.FAILED)):
+            exit_code = cli.main(
+                [
+                    "run",
+                    "--model",
+                    "gemini/gemini-2.5-flash",
+                    "--corpus",
+                    "corpora/0.1.0.json",
+                    "--documents",
+                    "documents/documents.json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 1)
 
 
 if __name__ == "__main__":

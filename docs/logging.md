@@ -5,15 +5,16 @@ The evaluator emits a small set of vendor-neutral lifecycle events through Pytho
 Local defaults are `INFO` and `human`. Cloud deployments should normally select JSON:
 
 ```bash
-SPPR_LOG_LEVEL=INFO SPPR_LOG_FORMAT=json \
-  poetry run single-pass-ranker run \
+poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
-  --documents documents/documents.json
+  --documents documents/documents.json \
+  --log-level INFO \
+  --log-format json
 ```
 
-The equivalent CLI options are `--log-level` and `--log-format`. Supported levels are `DEBUG`, `INFO`, `WARNING`, and `ERROR`; supported formats are `human` and `json`.
+Supported levels are `DEBUG`, `INFO`, `WARNING`, and `ERROR`; supported formats are `human` and `json`. Logging configuration is explicit CLI input and does not fall back to package-specific environment variables.
 
 Library use is quiet by default. An embedding application can configure the `single_pass_parsing_ranker` logger itself or call `configure_logging` from `single_pass_parsing_ranker.observability`.
 

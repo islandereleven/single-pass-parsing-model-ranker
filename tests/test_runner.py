@@ -247,6 +247,33 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(comparison_row.score, 0.0)
         self.assertEqual(run_row.status, RunStatus.COMPLETED)
 
+    def test_run_evaluation_quiet_output_still_persists_results(self) -> None:
+        test_case = load_corpus(EXAMPLE_CORPUS, document_registry_path=DOCUMENT_REGISTRY)[0]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "runs"
+            output = StringIO()
+            with redirect_stdout(output):
+                run = run_evaluation(
+                    model="gemini/gemini-2.5-flash",
+                    corpus_path=EXAMPLE_CORPUS,
+                    document_registry_path=DOCUMENT_REGISTRY,
+                    run_id=RUN_ID,
+                    env_path=None,
+                    output_format="quiet",
+                    output_dir=output_dir,
+                    structured_parse_request=lambda **kwargs: LLMCallResult(
+                        raw_output=json.dumps(test_case.ground_truth)
+                    ),
+                )
+
+            run_path = output_dir / f"run_id={RUN_ID}" / "run.json"
+            persisted_run = Run.model_validate_json(run_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(run.status, RunStatus.COMPLETED)
+        self.assertEqual(persisted_run.status, RunStatus.COMPLETED)
+
     def test_run_evaluation_records_invalid_json_as_zero_score(self) -> None:
         def fake_request(**kwargs):
             return LLMCallResult(raw_output="not json")
@@ -345,7 +372,7 @@ class RunnerTests(unittest.TestCase):
         model_output = dict(test_case.ground_truth)
         model_output["total"] = 999.0
 
-        for output_format in ("pretty", "jsonl"):
+        for output_format in ("pretty", "jsonl", "quiet"):
             with self.subTest(output_format=output_format), tempfile.TemporaryDirectory() as temp_dir:
                 output_dir = Path(temp_dir) / "runs"
                 with redirect_stdout(StringIO()):

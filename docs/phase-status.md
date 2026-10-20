@@ -86,7 +86,7 @@ Phase C progress:
 - Field-level exact-match scoring is implemented, with schema-owned fuzzy text comparison for noisy text fields.
 - Sequential evaluator runner glue is implemented.
 - Local `.env` loading is implemented for provider credentials, while `model_settings` rejects secret-like keys.
-- Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"`.
+- Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"` and result output suppression through `output_format="quiet"`.
 - CLI entry point is implemented as `single-pass-ranker run`.
 - Live Gemini smoke test over `corpora/0.1.0.json` completed with a scored result.
 
