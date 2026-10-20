@@ -145,6 +145,7 @@ Phase E progress:
 - Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
 - Added document-level source names and [../DATA_NOTICE.md](../DATA_NOTICE.md) for provenance and license disclosure.
 - Added immutable local or S3 run bundles containing the final run, test-case results, and field-comparison evidence.
+- Added a non-root container image with Tesseract and Poppler, plus CI build and CLI smoke coverage.
 
 Local smoke examples on `corpora/0.3.0.json`:
 
@@ -158,7 +159,7 @@ These are local smoke examples, not ranking exports. The text-field scores will 
 
 Current boundary:
 
-- PyTesseract OCR requires the `tesseract` system binary.
+- Local PyTesseract OCR requires the `tesseract` system binary; the container image includes it.
 - Multimodal model-native image/PDF input remains future work.
 
 ### Phase F: Evolution

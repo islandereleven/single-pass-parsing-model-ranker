@@ -119,6 +119,8 @@ Candidate upgrades:
 
 ```text
 single-pass-parsing-model-ranker/
+├── Dockerfile
+├── Makefile
 ├── README.md
 ├── pyproject.toml
 ├── docs/
@@ -256,6 +258,49 @@ poetry run single-pass-ranker run \
 ```
 
 S3 access uses the standard AWS credential chain. The package does not accept or store AWS credentials.
+
+## Container
+
+Build and smoke-test the local image:
+
+```bash
+make smoke-image
+```
+
+The image contains the package plus the Tesseract and Poppler system tools required for image and PDF text resolution. It does not contain corpora, documents, result data, or credentials.
+
+Run against S3-backed inputs and outputs:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  single-pass-parsing-model-ranker:local \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus s3://example-bucket/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
+  --documents s3://example-bucket/raw/single-pass-parsing-model-ranker/documents/documents.json \
+  --output-dir s3://example-bucket/silver/single-pass-parsing-model-ranker \
+  --output-format quiet \
+  --log-format json
+```
+
+For local inputs and outputs, mount the project and use container paths:
+
+```bash
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --env-file .env \
+  --mount type=bind,source="$PWD",target=/data \
+  single-pass-parsing-model-ranker:local \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus /data/corpora/0.3.0.json \
+  --documents /data/documents/documents.json \
+  --output-dir /data/runs
+```
+
+The container entry point is `single-pass-ranker run`, so the arguments are identical to the local CLI arguments. Provider credentials remain environment variables; run configuration does not fall back to environment variables.
 
 ## Logging
 
