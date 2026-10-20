@@ -59,7 +59,7 @@ class RunnerError(RuntimeError):
     pass
 
 
-OutputFormat = Literal["pretty", "jsonl"]
+OutputFormat = Literal["pretty", "jsonl", "quiet"]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -534,12 +534,12 @@ def _log_run_finished(
 
 
 def _validate_output_format(output_format: str) -> None:
-    if output_format not in ("pretty", "jsonl"):
+    if output_format not in ("pretty", "jsonl", "quiet"):
         raise RunnerError(f"Unknown output_format: {output_format}")
 
 
 def _emit_run_start(run: Run, output_format: OutputFormat) -> None:
-    if output_format == "jsonl":
+    if output_format in ("jsonl", "quiet"):
         return
 
     print(f"Run {run.run_id}")
@@ -562,6 +562,9 @@ def _emit_run_test_case(
     index: int,
     total: int,
 ) -> None:
+    if output_format == "quiet":
+        return
+
     mismatches = tuple(comparison for comparison in comparisons if not comparison.matched)
     if output_format == "jsonl":
         print(row.model_dump_json())
@@ -589,6 +592,9 @@ def _emit_run_test_case(
 
 
 def _emit_run(run: Run, output_format: OutputFormat) -> None:
+    if output_format == "quiet":
+        return
+
     if output_format == "jsonl":
         print(run.model_dump_json())
         return

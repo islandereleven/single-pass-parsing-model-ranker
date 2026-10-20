@@ -46,3 +46,6 @@ jobs:
 
       - name: Smoke-test CLI
         run: poetry run single-pass-ranker --help
+
+      - name: Build and smoke-test container
+        run: make smoke-image

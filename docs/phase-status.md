@@ -86,7 +86,7 @@ Phase C progress:
 - Field-level exact-match scoring is implemented, with schema-owned fuzzy text comparison for noisy text fields.
 - Sequential evaluator runner glue is implemented.
 - Local `.env` loading is implemented for provider credentials, while `model_settings` rejects secret-like keys.
-- Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"`.
+- Runner terminal output defaults to readable summaries, with raw JSONL available through `output_format="jsonl"` and result output suppression through `output_format="quiet"`.
 - CLI entry point is implemented as `single-pass-ranker run`.
 - Live Gemini smoke test over `corpora/0.1.0.json` completed with a scored result.
 
@@ -145,6 +145,7 @@ Phase E progress:
 - Added schema-owned `evaluation.comparison` metadata with `fuzzy_text` for noisy text fields.
 - Added document-level source names and [../DATA_NOTICE.md](../DATA_NOTICE.md) for provenance and license disclosure.
 - Added immutable local or S3 run bundles containing the final run, test-case results, and field-comparison evidence.
+- Added a non-root container image with Tesseract and Poppler, plus CI build and CLI smoke coverage.
 
 Local smoke examples on `corpora/0.3.0.json`:
 
@@ -158,7 +159,7 @@ These are local smoke examples, not ranking exports. The text-field scores will 
 
 Current boundary:
 
-- PyTesseract OCR requires the `tesseract` system binary.
+- Local PyTesseract OCR requires the `tesseract` system binary; the container image includes it.
 - Multimodal model-native image/PDF input remains future work.
 
 ### Phase F: Evolution

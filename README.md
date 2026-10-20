@@ -119,6 +119,8 @@ Candidate upgrades:
 
 ```text
 single-pass-parsing-model-ranker/
+├── Dockerfile
+├── Makefile
 ├── README.md
 ├── pyproject.toml
 ├── docs/
@@ -257,17 +259,61 @@ poetry run single-pass-ranker run \
 
 S3 access uses the standard AWS credential chain. The package does not accept or store AWS credentials.
 
-## Logging
+## Container
 
-The CLI writes operational logs to `stderr`, independently of result output on `stdout`. Logs default to human-readable `INFO` output. Cloud deployments can emit one JSON object per line:
+Build and smoke-test the local image:
 
 ```bash
-SPPR_LOG_FORMAT=json SPPR_LOG_LEVEL=INFO \
-  poetry run single-pass-ranker run \
+make smoke-image
+```
+
+The image contains the package plus the Tesseract and Poppler system tools required for image and PDF text resolution. It does not contain corpora, documents, result data, or credentials.
+
+Run against S3-backed inputs and outputs:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  single-pass-parsing-model-ranker:local \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus s3://example-bucket/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
+  --documents s3://example-bucket/raw/single-pass-parsing-model-ranker/documents/documents.json \
+  --output-dir s3://example-bucket/silver/single-pass-parsing-model-ranker \
+  --output-format quiet \
+  --log-format json
+```
+
+For local inputs and outputs, mount the project and use container paths:
+
+```bash
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --env-file .env \
+  --mount type=bind,source="$PWD",target=/data \
+  single-pass-parsing-model-ranker:local \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus /data/corpora/0.3.0.json \
+  --documents /data/documents/documents.json \
+  --output-dir /data/runs
+```
+
+The container entry point is `single-pass-ranker run`, so the arguments are identical to the local CLI arguments. Provider credentials remain environment variables; run configuration does not fall back to environment variables.
+
+## Logging
+
+The CLI writes operational logs to `stderr`, independently of result output on `stdout`. Logs default to human-readable `INFO` output. Cloud deployments can emit one JSON log object per line:
+
+```bash
+poetry run single-pass-ranker run \
   --model gemini/gemini-2.5-flash \
   --provider gemini \
   --corpus corpora/0.1.0.json \
-  --documents documents/documents.json
+  --documents documents/documents.json \
+  --log-format json \
+  --log-level INFO
 ```
 
 The package remains vendor-neutral. A deployment-level Datadog Agent, OpenTelemetry Collector, or other router can filter and enrich these events before forwarding them. See [docs/logging.md](docs/logging.md) for the event contract, safe-field policy, and recommended forwarding allowlist.
@@ -283,6 +329,21 @@ poetry run single-pass-ranker run \
   --temperature 0 \
   --output-format jsonl
 ```
+
+For unattended runs, persist the result bundle without writing result rows to stdout:
+
+```bash
+poetry run single-pass-ranker run \
+  --model gemini/gemini-2.5-flash \
+  --provider gemini \
+  --corpus s3://example-bucket/raw/single-pass-parsing-model-ranker/corpora/0.3.0.json \
+  --documents s3://example-bucket/raw/single-pass-parsing-model-ranker/documents/documents.json \
+  --output-dir s3://example-bucket/silver/single-pass-parsing-model-ranker \
+  --output-format quiet \
+  --log-format json
+```
+
+Run configuration is supplied through CLI arguments. Environment variables are reserved for provider credentials such as `GEMINI_API_KEY`; AWS access uses the standard credential chain or an IAM role.
 
 ## Development
 

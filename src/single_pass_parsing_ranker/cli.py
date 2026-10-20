@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
-import os
 
-from single_pass_parsing_ranker import LayoutToTextStrategy, OcrStrategy, run_evaluation
+from single_pass_parsing_ranker import LayoutToTextStrategy, OcrStrategy, RunStatus, run_evaluation
 from single_pass_parsing_ranker.observability import configure_logging
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="single-pass-ranker")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -38,9 +37,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     run_parser.add_argument(
         "--output-format",
-        choices=("pretty", "jsonl"),
+        choices=("pretty", "jsonl", "quiet"),
         default="pretty",
-        help="Terminal output format.",
+        help="Terminal output format; quiet suppresses result output.",
     )
     run_parser.add_argument(
         "--output-dir",
@@ -50,23 +49,23 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_parser.add_argument(
         "--log-level",
         choices=("DEBUG", "INFO", "WARNING", "ERROR"),
-        default=os.environ.get("SPPR_LOG_LEVEL", "INFO").upper(),
+        default="INFO",
         type=str.upper,
-        help="Package log threshold (default: SPPR_LOG_LEVEL or INFO).",
+        help="Package log threshold (default: INFO).",
     )
     run_parser.add_argument(
         "--log-format",
         choices=("human", "json"),
-        default=os.environ.get("SPPR_LOG_FORMAT", "human").lower(),
+        default="human",
         type=str.lower,
-        help="Package log format (default: SPPR_LOG_FORMAT or human).",
+        help="Package log format (default: human).",
     )
 
     args = parser.parse_args(argv)
 
     if args.command == "run":
         configure_logging(level=args.log_level, log_format=args.log_format)
-        run_evaluation(
+        run = run_evaluation(
             model=args.model,
             provider=args.provider,
             corpus_path=args.corpus,
@@ -77,6 +76,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             output_format=args.output_format,
             output_dir=args.output_dir,
         )
+        return 1 if run.status == RunStatus.FAILED else 0
+
+    return 0
 
 
 def _model_settings(args: argparse.Namespace) -> dict[str, float]:
@@ -87,4 +89,4 @@ def _model_settings(args: argparse.Namespace) -> dict[str, float]:
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
