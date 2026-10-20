@@ -269,6 +269,29 @@ make smoke-image
 
 The image contains the package plus the Tesseract and Poppler system tools required for image and PDF text resolution. It does not contain corpora, documents, result data, or credentials.
 
+Publish the image to a private ECR repository by passing its URL at runtime. For
+a Terraform-managed repository, read the URL from the root that owns it:
+
+```bash
+make push-image ECR_REPOSITORY_URL="$(
+  terraform -chdir=/path/to/terraform/staging output -raw ecr_repository_url
+)"
+```
+
+The default tag is the current Git commit and the default platform is
+`linux/amd64`; override them when needed:
+
+```bash
+make push-image \
+  ECR_REPOSITORY_URL="$ECR_REPOSITORY_URL" \
+  IMAGE_TAG=v0.1.0 \
+  DOCKER_PLATFORM=linux/arm64
+```
+
+The Make target derives the registry and AWS region from that URL and uses the
+standard AWS credential chain, including `AWS_PROFILE`. No AWS account,
+repository, infrastructure path, or credentials are stored in this package.
+
 Run against S3-backed inputs and outputs:
 
 ```bash
